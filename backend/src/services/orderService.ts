@@ -4,7 +4,7 @@ import { CURRENCY, type Order } from '../domain/order.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import { canTransition } from '../domain/orderStatus.js';
 import { invalidStatusTransition, orderNotFound } from '../errors/appError.js';
-import type { OrderRepository } from '../repositories/orderRepository.js';
+import type { OrderFilter, OrderRepository } from '../repositories/orderRepository.js';
 import type { CreateOrderInput } from '../validation/orderSchemas.js';
 
 // Business logic for orders. Knows nothing about HTTP or Express.
@@ -33,8 +33,8 @@ export class OrderService {
     });
   }
 
-  async listOrders(): Promise<Order[]> {
-    return this.repository.findAll();
+  async listOrders(filter: OrderFilter = {}): Promise<Order[]> {
+    return this.repository.findAll(filter);
   }
 
   async getOrderById(id: string): Promise<Order> {

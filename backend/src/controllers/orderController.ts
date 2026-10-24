@@ -1,12 +1,13 @@
 import type { RequestHandler } from 'express';
 import type { OrderService } from '../services/orderService.js';
-import type { CreateOrderInput } from '../validation/orderSchemas.js';
+import type { CreateOrderInput, ListOrdersQuery } from '../validation/orderSchemas.js';
 
 // HTTP layer only: read the request, call the service, choose the status code.
 // Errors are simply thrown; Express 5 forwards rejected promises to errorHandler.
 export function createOrderController(orderService: OrderService) {
   const list: RequestHandler = async (_req, res) => {
-    const orders = await orderService.listOrders();
+    // Parsed and checked by validateQuery(ListOrdersQuerySchema).
+    const orders = await orderService.listOrders(res.locals.query as ListOrdersQuery);
     res.status(200).json({ data: orders });
   };
 

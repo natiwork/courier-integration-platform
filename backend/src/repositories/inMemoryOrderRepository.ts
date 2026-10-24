@@ -1,5 +1,5 @@
 import type { Order } from '../domain/order.js';
-import type { NewOrder, OrderRepository } from './orderRepository.js';
+import type { NewOrder, OrderFilter, OrderRepository } from './orderRepository.js';
 
 const FIRST_ORDER_NUMBER = 1001;
 const ORDER_NUMBER_PREFIX = 'ORD-';
@@ -22,15 +22,26 @@ export class InMemoryOrderRepository implements OrderRepository {
     return structuredClone(order);
   }
 
-  async findAll(): Promise<Order[]> {
+  async findAll(filter: OrderFilter = {}): Promise<Order[]> {
+    const search = filter.search?.toLowerCase();
+    const matching = [...this.orders.values()].filter(
+      (order) =>
+        (!filter.status || order.status === filter.status) &&
+        (!search ||
+          order.orderNumber.toLowerCase().includes(search) ||
+          order.customerName.toLowerCase().includes(search) ||
+          order.destinationCity.toLowerCase().includes(search)),
+    );
+
     // Newest first. Orders created in the same millisecond share createdAt,
     // so the higher order number wins the tie (same as ORDER BY created_at DESC, order_number DESC).
-    return [...this.orders.values()]
+    return matching
       .sort(
         (a, b) =>
           b.createdAt.localeCompare(a.createdAt) ||
           orderNumberValue(b.orderNumber) - orderNumberValue(a.orderNumber),
       )
+      .slice(0, filter.limit)
       .map((order) => structuredClone(order));
   }
 

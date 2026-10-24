@@ -156,3 +156,12 @@ Content-Type: application/json
   "totalCents": 1,
   "items": [{ "sku": "a b", "name": "Stoneware mug", "quantity": 0, "unitPriceCents": "18.90" }]
 }
+
+### Search by order number, customer name or city (200)
+GET {{baseUrl}}/api/orders?search=berlin
+
+### Filter by status and limit (200)
+GET {{baseUrl}}/api/orders?status=PENDING&limit=5
+
+### Invalid: unknown status (400 VALIDATION_ERROR)
+GET {{baseUrl}}/api/orders?status=LOST

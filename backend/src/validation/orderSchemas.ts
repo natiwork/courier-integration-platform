@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { SUPPORTED_COUNTRIES } from '../domain/countries.js';
 import { PAYMENT_STATUSES } from '../domain/order.js';
+import { ORDER_STATUSES } from '../domain/orderStatus.js';
 
 // Platform-wide limit. Courier providers may enforce stricter limits of their own (Phase 5).
 export const MAX_PARCEL_WEIGHT_KG = 100;
@@ -73,3 +74,29 @@ export const CreateOrderSchema = z.strictObject({
 
 // The type is derived from the schema, so the two can never drift apart.
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
+
+// "?status=" from an empty filter means "no filter", not an invalid status.
+const emptyToUndefined = (value: unknown) => (value === '' ? undefined : value);
+
+// GET /api/orders?search=&status=&limit=. Unknown parameters are ignored.
+export const ListOrdersQuerySchema = z.object({
+  search: z.preprocess(
+    emptyToUndefined,
+    z.string('Search must be a single value').trim().max(100, 'Search must be at most 100 characters').optional(),
+  ),
+  status: z.preprocess(
+    emptyToUndefined,
+    z.enum(ORDER_STATUSES, `Status must be one of: ${ORDER_STATUSES.join(', ')}`).optional(),
+  ),
+  limit: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number('Limit must be a number')
+      .int('Limit must be a whole number')
+      .min(1, 'Limit must be at least 1')
+      .max(100, 'Limit must be at most 100')
+      .optional(),
+  ),
+});
+
+export type ListOrdersQuery = z.infer<typeof ListOrdersQuerySchema>;
