@@ -32,6 +32,9 @@ export const CreateOrderSchema = z.strictObject({
     })
     .positive('Parcel weight must be greater than 0')
     .max(MAX_PARCEL_WEIGHT_KG, `Parcel weight must be at most ${MAX_PARCEL_WEIGHT_KG} kg`),
+}, {
+  // Missing body or a non-object (array, string...). Other object-level issues keep Zod's default message.
+  error: (issue) => (issue.code === 'invalid_type' ? 'Request body must be a JSON object' : undefined),
 });
 
 // The type is derived from the schema, so the two can never drift apart.

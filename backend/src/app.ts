@@ -2,9 +2,21 @@ import express, { type Express } from 'express';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
+import type { OrderRepository } from './repositories/orderRepository.js';
+import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
+import { createOrderRouter } from './routes/orderRoutes.js';
+import { OrderService } from './services/orderService.js';
+
+export interface AppOptions {
+  // Defaults to a fresh in-memory store, so every createApp() call starts empty.
+  orderRepository?: OrderRepository;
+}
 
 // Builds the Express app without starting it, so tests can use it without opening a port.
-export function createApp(): Express {
+export function createApp(options: AppOptions = {}): Express {
+  const orderRepository = options.orderRepository ?? new InMemoryOrderRepository();
+  const orderService = new OrderService(orderRepository);
+
   const app = express();
   app.disable('x-powered-by');
 
@@ -19,6 +31,8 @@ export function createApp(): Express {
       timestamp: new Date().toISOString(),
     });
   });
+
+  app.use('/api/orders', createOrderRouter(orderService));
 
   // Must come after all routes.
   app.use(notFound);

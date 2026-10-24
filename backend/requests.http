@@ -1,8 +1,101 @@
 # Requests for the VS Code REST Client extension (humao.rest-client).
 # Start the server first: cd backend && npm run dev
 # Then click "Send Request" above a request.
+# Run "Create order" first: later requests reuse the id it returns.
 
 @baseUrl = http://localhost:3000
 
 ### Health check
 GET {{baseUrl}}/health
+
+### Create order (201)
+# @name createOrder
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "  Ada Lovelace ",
+  "customerEmail": "  Ada.Lovelace@Example.COM ",
+  "deliveryAddress": "12 Analytical Street",
+  "destinationCity": "London",
+  "postalCode": "N1 9GU",
+  "parcelWeightKg": 2.4
+}
+
+### List orders, newest first (200)
+GET {{baseUrl}}/api/orders
+
+### Get the order created above (200)
+GET {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}
+
+### Get a missing order (404 ORDER_NOT_FOUND)
+GET {{baseUrl}}/api/orders/00000000-0000-0000-0000-000000000000
+
+### Invalid: empty body (400 VALIDATION_ERROR, every field required)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{}
+
+### Invalid: bad email, weight as a string, bad postal code (400)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Ada Lovelace",
+  "customerEmail": "not-an-email",
+  "deliveryAddress": "12 Analytical Street",
+  "destinationCity": "London",
+  "postalCode": "12#45",
+  "parcelWeightKg": "2.4"
+}
+
+### Invalid: negative weight (400)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Ada Lovelace",
+  "customerEmail": "ada@example.com",
+  "deliveryAddress": "12 Analytical Street",
+  "destinationCity": "London",
+  "postalCode": "N1 9GU",
+  "parcelWeightKg": -1
+}
+
+### Invalid: weight above the 100 kg platform limit (400)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Ada Lovelace",
+  "customerEmail": "ada@example.com",
+  "deliveryAddress": "12 Analytical Street",
+  "destinationCity": "London",
+  "postalCode": "N1 9GU",
+  "parcelWeightKg": 150
+}
+
+### Invalid: client tries to set system fields (400, unrecognized keys)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Ada Lovelace",
+  "customerEmail": "ada@example.com",
+  "deliveryAddress": "12 Analytical Street",
+  "destinationCity": "London",
+  "postalCode": "N1 9GU",
+  "parcelWeightKg": 2.4,
+  "status": "DELIVERED",
+  "trackingNumber": "FAKE-123"
+}
+
+### Invalid: malformed JSON (400 INVALID_JSON)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{ "customerName": "Ada Lovelace",
+
+### Unknown route (404 ROUTE_NOT_FOUND)
+GET {{baseUrl}}/api/does-not-exist
