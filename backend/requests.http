@@ -1,0 +1,8 @@
+# Requests for the VS Code REST Client extension (humao.rest-client).
+# Start the server first: cd backend && npm run dev
+# Then click "Send Request" above a request.
+
+@baseUrl = http://localhost:3000
+
+### Health check
+GET {{baseUrl}}/health
