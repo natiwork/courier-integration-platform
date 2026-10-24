@@ -1,0 +1,34 @@
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.up {
+  color: var(--trend-up);
+}
+
+.down {
+  color: var(--trend-down);
+}
+
+.flat,
+.none {
+  color: var(--muted);
+}
+
+.none {
+  font-weight: 600;
+  white-space: normal;
+}
+
+.onDark {
+  color: var(--hero-accent);
+}
+
+.onDark.none {
+  color: var(--on-hero);
+}

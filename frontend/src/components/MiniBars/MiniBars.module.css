@@ -1,0 +1,28 @@
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 36px;
+}
+
+.bar {
+  flex: 1;
+  min-width: 4px;
+  max-width: 12px;
+  border-radius: 3px 3px 1px 1px;
+  background: var(--chart);
+  opacity: 0.45;
+}
+
+.last {
+  opacity: 1;
+}
+
+.onDark .bar {
+  background: var(--hero-accent);
+  opacity: 0.35;
+}
+
+.onDark .last {
+  opacity: 1;
+}

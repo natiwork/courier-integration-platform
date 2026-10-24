@@ -1,0 +1,82 @@
+.gauge {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+}
+
+.dial {
+  position: relative;
+  width: min(100%, 15rem);
+}
+
+.track,
+.value {
+  fill: none;
+  stroke-width: 18;
+  stroke-linecap: round;
+}
+
+.track {
+  stroke: var(--chart-track);
+}
+
+.value {
+  stroke: var(--chart);
+}
+
+.reading {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  justify-items: center;
+  max-width: none;
+}
+
+.percent {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.caption {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend strong {
+  color: var(--text);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.delivered {
+  background: var(--chart);
+}
+
+.failed {
+  background: var(--danger);
+}
+
+.returned {
+  background: var(--violet);
+}

@@ -1,0 +1,33 @@
+.payment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.PAID {
+  color: var(--success);
+}
+
+.UNPAID {
+  color: var(--warning);
+}
+
+/* Refunded: hollow dot, so it differs from Paid by shape too */
+.REFUNDED {
+  color: var(--muted);
+}
+
+.REFUNDED .dot {
+  background: transparent;
+  border: 1.5px solid currentColor;
+}

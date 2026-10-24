@@ -37,16 +37,18 @@ const NAV_ITEMS: NavItem[] = [
 export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const previousPathname = useRef(pathname);
 
   // After in-app navigation, move focus to the new page heading so screen reader users hear
   // which page opened. Not on the first load: there the first Tab must reach "Skip to content".
+  // Not when the link targets a section (#hash): the page moves focus to that section itself.
   useEffect(() => {
     if (previousPathname.current === pathname) return;
     previousPathname.current = pathname;
+    if (hash) return;
     document.querySelector<HTMLElement>('#main h1')?.focus();
-  }, [pathname]);
+  }, [pathname, hash]);
 
   // Escape closes the mobile menu and returns focus to the button that opened it.
   useEffect(() => {

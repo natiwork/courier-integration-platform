@@ -1,0 +1,160 @@
+.wrapper {
+  container-type: inline-size;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  font-size: var(--text-sm);
+  transition: opacity var(--duration-base) ease;
+}
+
+.busy {
+  opacity: 0.55;
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-2);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table thead th {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table thead th:first-child {
+  border-radius: var(--radius-m) 0 0 var(--radius-m);
+}
+
+.table thead th:last-child {
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+}
+
+.table tbody tr + tr > * {
+  border-top: 1px solid var(--border);
+}
+
+.table tbody tr:hover > * {
+  background: var(--surface-2);
+}
+
+.orderCell {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.orderLink {
+  color: var(--text);
+}
+
+.numeric {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.total {
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.table abbr {
+  text-decoration: none;
+}
+
+/* Narrow containers: every row becomes a small card, cells are labelled with data-label */
+@container (max-width: 680px) {
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table,
+  .table tbody {
+    display: block;
+  }
+
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-4) 0;
+  }
+
+  .table tbody tr + tr {
+    border-top: 1px solid var(--border);
+  }
+
+  .table tbody tr + tr > * {
+    border-top: 0;
+  }
+
+  .table tbody tr:hover > * {
+    background: transparent;
+  }
+
+  .table th,
+  .table td {
+    display: block;
+    padding: 0;
+  }
+
+  .table td::before {
+    content: attr(data-label) ': ';
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  /* Order number and total on the first line; the rest below */
+  .orderCell {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: var(--text-base);
+  }
+
+  /* td.total, not .total: `.table td` below must not win on specificity */
+  .table td.total {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--text-base);
+  }
+
+  .total::before,
+  .table td[data-label='Status']::before,
+  .table td[data-label='Payment']::before {
+    content: none;
+  }
+
+  .table td {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
+  .table td[data-label='Status'] {
+    grid-column: 1;
+  }
+
+  .table td[data-label='Payment'] {
+    grid-column: 2;
+    align-self: center;
+  }
+
+  .numeric {
+    text-align: left !important;
+  }
+}

@@ -1,0 +1,17 @@
+.skeleton {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bar {
+  display: block;
+  border-radius: var(--radius-s);
+  background: var(--chart-track);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
