@@ -74,6 +74,17 @@ describe('OrderService', () => {
       const names = (await service.listOrders()).map((order) => order.customerName);
       expect(names).toEqual(['Third', 'Second', 'First']);
     });
+
+    it('breaks createdAt ties by order number, newest first', async () => {
+      const frozenClock = () => new Date('2026-01-01T10:00:00.000Z');
+      const frozenService = new OrderService(new InMemoryOrderRepository(), frozenClock);
+      await frozenService.createOrder(input);
+      await frozenService.createOrder(input);
+      await frozenService.createOrder(input);
+
+      const numbers = (await frozenService.listOrders()).map((order) => order.orderNumber);
+      expect(numbers).toEqual(['ORD-1003', 'ORD-1002', 'ORD-1001']);
+    });
   });
 
   describe('getOrderById', () => {

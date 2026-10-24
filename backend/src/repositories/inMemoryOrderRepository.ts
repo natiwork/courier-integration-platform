@@ -2,6 +2,12 @@ import type { Order } from '../domain/order.js';
 import type { NewOrder, OrderRepository } from './orderRepository.js';
 
 const FIRST_ORDER_NUMBER = 1001;
+const ORDER_NUMBER_PREFIX = 'ORD-';
+
+// Compares numerically: as strings, "ORD-10000" would sort before "ORD-9999".
+function orderNumberValue(orderNumber: string): number {
+  return Number(orderNumber.slice(ORDER_NUMBER_PREFIX.length));
+}
 
 // Keeps orders in a Map. Data is lost on restart; PostgreSQL replaces this in Phase 9.
 export class InMemoryOrderRepository implements OrderRepository {
@@ -9,18 +15,21 @@ export class InMemoryOrderRepository implements OrderRepository {
   private nextOrderNumber = FIRST_ORDER_NUMBER;
 
   async create(newOrder: NewOrder): Promise<Order> {
-    const order: Order = { ...newOrder, orderNumber: `ORD-${this.nextOrderNumber}` };
+    const order: Order = { ...newOrder, orderNumber: `${ORDER_NUMBER_PREFIX}${this.nextOrderNumber}` };
     this.nextOrderNumber += 1;
     this.orders.set(order.id, order);
     return { ...order };
   }
 
   async findAll(): Promise<Order[]> {
-    // Map keeps insertion order, so reversing puts the latest insert first.
-    // The sort is stable, so orders created in the same millisecond keep that order.
+    // Newest first. Orders created in the same millisecond share createdAt,
+    // so the higher order number wins the tie (same as ORDER BY created_at DESC, order_number DESC).
     return [...this.orders.values()]
-      .reverse()
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .sort(
+        (a, b) =>
+          b.createdAt.localeCompare(a.createdAt) ||
+          orderNumberValue(b.orderNumber) - orderNumberValue(a.orderNumber),
+      )
       .map((order) => ({ ...order }));
   }
 
