@@ -21,6 +21,13 @@ A full-stack platform for managing e-commerce orders and courier service integra
 
   Internal error details and stack traces are logged, never returned to the client.
 - Unit and API tests (Vitest + Supertest).
+- Frontend foundation (React 19, TypeScript, Vite, React Router):
+  - "Editorial Logistics Dashboard" design system built on CSS variables (palette checked for WCAG AA contrast, Barlow Condensed + Atkinson Hyperlegible Next);
+  - responsive layout with keyboard-accessible navigation (skip link, visible focus, mobile menu);
+  - pages: Overview, Shipments, Shipment details, New shipment, Couriers, Integrations, plus a 404 page;
+  - base components: status badge, buttons with a loading state, loading, empty and error states.
+
+  The frontend is **not connected to the API yet**: every page shows an empty state that says so. No sample data is displayed.
 
 ## Run the backend
 
@@ -33,10 +40,25 @@ npm run dev        # http://localhost:3000/health
 
 Example requests (valid and invalid) are in [backend/requests.http](backend/requests.http) for the VS Code REST Client extension.
 
+## Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+In development, `/styleguide` shows every base component and state with sample text. This page is not included in production builds.
+
 ## Check
 
 ```bash
 cd backend
 npm run typecheck
 npm test
+
+cd ../frontend
+npm run typecheck
+npm run lint
+npm run build
 ```
