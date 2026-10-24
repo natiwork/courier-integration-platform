@@ -7,7 +7,7 @@
   display: grid;
   gap: var(--space-4);
   padding-top: var(--space-4);
-  border-top: var(--line-hair);
+  border-top: 1px solid var(--border);
 }
 
 /* The page header already draws a rule above the first section */

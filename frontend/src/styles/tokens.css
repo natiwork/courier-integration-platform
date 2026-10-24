@@ -1,53 +1,134 @@
 /*
- * Design tokens for the "Editorial Logistics Dashboard".
- * Contrast ratios (WCAG 2.1) are noted where a pair is used for text or UI boundaries.
+ * LogiFlow design tokens. Light is the default; [data-theme='dark'] overrides the colour roles.
+ * Themes can be nested (e.g. a dark panel in the component preview), because tokens are set
+ * on any element with data-theme, not only on <html>.
+ * Contrast ratios (WCAG 2.1) are noted for text (≥ 4.5) and UI/graphics (≥ 3).
  */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f3efe6; /* warm milk */
+  --surface: #fffdf8; /* cards */
+  --surface-2: #f7f2e8; /* nested blocks, hover, table header */
+  --text: #13312b; /* 13.75 on surface, 12.18 on bg */
+  --text-2: #4a524c; /* 7.94 on surface */
+  --muted: #5d645c; /* 6.00 on surface, 5.47 on surface-2 */
+  --border: #e3dccd; /* decorative */
+  --border-strong: #85837a; /* inputs: 3.74 on surface */
+  --link: #24584b; /* 8.03 on surface */
+
+  --primary: #13312b; /* primary button, active nav pill */
+  --on-primary: #f3efe6; /* 12.18 */
+  --primary-hover: #24584b; /* on-primary 7.11 */
+  --accent: #c8d67a; /* lime: fills and markers only on light surfaces */
+  --nav-active-bg: #13312b;
+  --nav-active-text: #f3efe6;
+  --focus: #13312b; /* 13.75 on surface */
+
+  --hero-start: #13312b;
+  --hero-end: #24584b;
+  --on-hero: #f3efe6; /* 12.18 → 7.11 across the gradient */
+  --hero-accent: #c8d67a; /* 8.89 → 5.19 */
+
+  --chart: #2f6b57; /* 6.15 on surface */
+  --chart-current: #728a26; /* 3.84 on surface, always paired with a "This month" label */
+  --chart-track: #ece7dc;
+
+  --success: #2e6a3d;
+  --success-bg: #e1eedc; /* 5.38 */
+  --warning: #7f5300;
+  --warning-bg: #f7e9c6; /* 5.55 */
+  --danger: #a1382b;
+  --danger-bg: #f8e0da; /* 5.35 */
+  --info: #2b5a77;
+  --info-bg: #e0eaf1; /* 6.08 */
+  --violet: #5b4b8a;
+  --violet-bg: #ece6f6; /* 6.11 */
+  --neutral-bg: #ece7dc; /* text 11.34 */
+  --trend-up: #2e6a3d; /* 6.37 on surface */
+  --trend-down: #a1382b; /* 6.63 on surface */
+
+  --tile-lime: #e8efc4; /* text 11.70 */
+  --tile-mint: #dceee4; /* text 11.58 */
+  --tile-sand: #f6e9d2; /* text 11.66 */
+  --tile-rose: #f6e1dc; /* text 11.13 */
+
+  --shadow-card: 0 1px 2px rgb(19 49 43 / 0.06), 0 8px 24px rgb(19 49 43 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(19 49 43 / 0.08), 0 14px 32px rgb(19 49 43 / 0.1);
+  --card-border: 1px solid transparent;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0f1a17;
+  --surface: #16241f;
+  --surface-2: #1d2f29;
+  --text: #eef0e6; /* 13.97 on surface, 15.45 on bg */
+  --text-2: #c1c9be; /* 9.47 */
+  --muted: #a3ad9f; /* 6.92 on surface, 6.06 on surface-2 */
+  --border: #2c3f38;
+  --border-strong: #6f7f77; /* 3.81 */
+  --link: #c8d67a; /* 10.22 */
+
+  --primary: #c8d67a;
+  --on-primary: #13312b; /* 8.89 */
+  --primary-hover: #d6e294;
+  --accent: #c8d67a;
+  --nav-active-bg: #c8d67a;
+  --nav-active-text: #13312b;
+  --focus: #c8d67a; /* 10.22 on surface */
+
+  --hero-start: #13312b;
+  --hero-end: #24584b;
+  --on-hero: #eef0e6; /* 8.67 → 7.09 */
+  --hero-accent: #c8d67a;
+
+  --chart: #8fc9a9; /* 8.49 */
+  --chart-current: #c8d67a; /* 10.22 */
+  --chart-track: #25332e;
+
+  --success: #93d3a2;
+  --success-bg: #1e3a2a; /* 7.13 */
+  --warning: #e9c46e;
+  --warning-bg: #3a2f14; /* 7.88 */
+  --danger: #f2a598;
+  --danger-bg: #40211c; /* 7.31 */
+  --info: #9cc4e0;
+  --info-bg: #1b3142; /* 7.28 */
+  --violet: #c6b8f0;
+  --violet-bg: #2d2645; /* 7.81 */
+  --neutral-bg: #25332e; /* text 11.46 */
+  --trend-up: #93d3a2; /* 9.25 */
+  --trend-down: #f2a598; /* 8.12 */
+
+  --tile-lime: #2a331a;
+  --tile-mint: #17362b;
+  --tile-sand: #3a2f1c;
+  --tile-rose: #3b2420;
+
+  /* Shadows don't read on dark backgrounds: a thin border separates cards instead */
+  --shadow-card: none;
+  --shadow-raised: 0 0 0 1px #3a5048;
+  --card-border: 1px solid var(--border);
+}
+
 :root {
-  /* Base palette */
-  --color-spruce-900: #13312b; /* main text, navigation, primary button. 12.18:1 on milk */
-  --color-spruce-700: #24584b; /* links. 7.11:1 on milk */
-  --color-milk: #f3efe6; /* page background */
-  --color-paper: #fbf9f4; /* raised surfaces: panels, tables */
-  --color-lime: #c8d67a; /* fills and markers only, never text on light (1.37:1). 8.89:1 against spruce-900 */
-  --color-lime-deep: #5e6b1e; /* lime-tinted text on light. 5.09:1 on milk */
-  --color-stone-700: #4f5650; /* secondary text. 6.58:1 on milk */
-  --color-stone-500: #5f655e; /* muted text. 5.21:1 on milk, 4.71:1 on neutral-bg */
-  --color-line: #d8d2c4; /* decorative dividers */
-  --color-line-strong: #85837a; /* input borders. 3.31:1 on milk */
-
-  /* Semantic colors: text / background pairs */
-  --color-success: #2e6a3d;
-  --color-success-bg: #ddebda; /* 5.23:1 */
-  --color-warning: #7f5300;
-  --color-warning-bg: #f5e6bf; /* 5.40:1 */
-  --color-danger: #a1382b; /* 5.87:1 on milk */
-  --color-danger-bg: #f6ddd7; /* 5.21:1 */
-  --color-info: #2b5a77;
-  --color-info-bg: #dde7ee; /* 5.91:1 */
-  --color-neutral-bg: #e8e4da; /* spruce-900 11.01:1, stone-700 5.95:1 */
-
-  /* Roles */
-  --color-bg: var(--color-milk);
-  --color-surface: var(--color-paper);
-  --color-text: var(--color-spruce-900);
-  --color-text-secondary: var(--color-stone-700);
-  --color-text-muted: var(--color-stone-500);
-  --color-link: var(--color-spruce-700);
-  --color-focus: var(--color-spruce-900);
-  --color-focus-on-dark: var(--color-lime);
-
   /* Typography */
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-text: 'Atkinson Hyperlegible Next Variable', 'Segoe UI', system-ui, sans-serif;
 
   /* Major third scale (1.25), base 16px */
+  --text-xs: 0.8rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-md: 1.25rem;
   --text-lg: 1.563rem;
   --text-xl: 1.953rem;
   --text-2xl: 2.441rem;
-  --text-display: clamp(2.441rem, 6vw, 3.815rem);
+  --text-kpi: 2.25rem;
+  --text-hero: clamp(2.75rem, 4vw, 3.75rem);
 
   --leading-text: 1.5;
   --leading-display: 1.05;
@@ -62,23 +143,30 @@
   --space-6: 2rem;
   --space-7: 3rem;
   --space-8: 4rem;
-  --space-9: 6rem;
 
-  /* Shape: radius follows hierarchy (controls < panels); navigation and tables have none */
-  --radius-s: 4px;
-  --radius-m: 8px;
+  /* Shape */
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --radius-pill: 999px;
 
-  /* Lines */
-  --line-hair: 1px solid var(--color-line);
-  --line-rule: 2px solid var(--color-spruce-900);
   --focus-ring-width: 3px;
   --focus-ring-offset: 2px;
 
   /* Layout */
-  --sidebar-width: 15rem;
-  --content-max: 76rem;
+  --sidebar-width: 15.5rem;
+  --sidebar-rail: 4.75rem;
+  --content-max: 90rem;
+  --card-padding: var(--space-5);
+  --grid-gap: var(--space-5);
 
-  /* Motion: only in response to user actions */
   --duration-fast: 120ms;
   --duration-base: 200ms;
+}
+
+@media (max-width: 479px) {
+  :root {
+    --card-padding: 1.25rem;
+    --grid-gap: var(--space-4);
+  }
 }

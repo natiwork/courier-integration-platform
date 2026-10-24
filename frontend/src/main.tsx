@@ -5,6 +5,7 @@ import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/barlow-condensed/700.css';
 import '@fontsource-variable/atkinson-hyperlegible-next';
 import './styles/global.css';
+import { StatsProvider } from './context/StatsProvider';
 import { router } from './router';
 
 const rootElement = document.getElementById('root');
@@ -14,6 +15,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <StatsProvider>
+      <RouterProvider router={router} />
+    </StatsProvider>
   </StrictMode>,
 );

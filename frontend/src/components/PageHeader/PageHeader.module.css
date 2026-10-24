@@ -4,14 +4,12 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-4) var(--space-5);
-  padding-bottom: var(--space-4);
-  margin-bottom: var(--space-6);
-  border-bottom: var(--line-rule);
+  margin-bottom: var(--space-5);
 }
 
 .text {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .title {
@@ -20,11 +18,12 @@
 }
 
 .description {
-  color: var(--color-text-secondary);
+  color: var(--text-2);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-3);
 }

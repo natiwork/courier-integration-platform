@@ -4,12 +4,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  border: 2px solid transparent;
-  border-radius: var(--radius-s);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-pill);
   font-family: var(--font-text);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color var(--duration-fast) ease,
@@ -17,55 +18,59 @@
 }
 
 .md {
-  min-height: 44px;
+  min-height: 46px;
   padding: var(--space-2) var(--space-5);
   font-size: var(--text-base);
 }
 
 .sm {
-  min-height: 36px;
+  min-height: 38px;
   padding: var(--space-1) var(--space-4);
   font-size: var(--text-sm);
 }
 
 .primary {
-  background: var(--color-spruce-900);
-  color: var(--color-milk);
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--color-spruce-700);
+  background: var(--primary-hover);
 }
 
 .secondary {
-  background: transparent;
-  color: var(--color-spruce-900);
-  border-color: var(--color-spruce-900);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .secondary:hover:not(:disabled) {
-  background: var(--color-neutral-bg);
+  background: var(--surface-2);
 }
 
 .quiet {
   background: transparent;
-  color: var(--color-spruce-900);
+  color: var(--text);
   text-decoration: underline;
   text-underline-offset: 0.2em;
-  padding-inline: var(--space-2);
+  padding-inline: var(--space-3);
 }
 
 .quiet:hover:not(:disabled) {
-  background: var(--color-neutral-bg);
+  background: var(--surface-2);
 }
 
 .danger {
-  background: var(--color-danger);
-  color: var(--color-paper);
+  background: var(--danger);
+  color: var(--surface);
 }
 
 .danger:hover:not(:disabled) {
-  background: var(--color-spruce-900);
+  background: var(--text);
+}
+
+.block {
+  width: 100%;
 }
 
 .button:disabled {
@@ -81,6 +86,12 @@
 
 .button[data-loading] .label {
   opacity: 0;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .spinner {

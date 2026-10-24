@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const APP_NAME = 'Courier Integration Platform';
+const APP_NAME = 'LogiFlow';
 
 // Sets the browser tab title for the current page.
 export function useDocumentTitle(pageTitle: string): void {

@@ -8,10 +8,12 @@ type Size = 'md' | 'sm';
 interface StyleProps {
   variant?: Variant;
   size?: Size;
+  // Stretch to the full width of the container.
+  block?: boolean;
 }
 
-function buttonClassName({ variant = 'primary', size = 'md' }: StyleProps, extra?: string): string {
-  return [styles.button, styles[variant], styles[size], extra].filter(Boolean).join(' ');
+function buttonClassName({ variant = 'primary', size = 'md', block = false }: StyleProps, extra?: string): string {
+  return [styles.button, styles[variant], styles[size], block && styles.block, extra].filter(Boolean).join(' ');
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, StyleProps {
@@ -19,12 +21,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, StyleProp
   loading?: boolean;
 }
 
-export function Button({ variant, size, loading = false, disabled, type = 'button', className, children, ...rest }: ButtonProps) {
+export function Button({ variant, size, block, loading = false, disabled, type = 'button', className, children, ...rest }: ButtonProps) {
   return (
     <button
       {...rest}
       type={type}
-      className={buttonClassName({ variant, size }, className)}
+      className={buttonClassName({ variant, size, block }, className)}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       data-loading={loading || undefined}
@@ -39,9 +41,9 @@ export function Button({ variant, size, loading = false, disabled, type = 'butto
 type ButtonLinkProps = LinkProps & StyleProps;
 
 // A navigation link that looks like a button. Use it when the action opens another page.
-export function ButtonLink({ variant, size, className, children, ...rest }: ButtonLinkProps) {
+export function ButtonLink({ variant, size, block, className, children, ...rest }: ButtonLinkProps) {
   return (
-    <Link {...rest} className={buttonClassName({ variant, size }, className as string | undefined)}>
+    <Link {...rest} className={buttonClassName({ variant, size, block }, className as string | undefined)}>
       <span className={styles.label}>{children}</span>
     </Link>
   );

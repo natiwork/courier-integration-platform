@@ -1,14 +1,14 @@
 .badge {
-  --badge-bg: var(--color-neutral-bg);
+  --badge-bg: var(--neutral-bg);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.2em var(--space-2);
-  border-radius: var(--radius-s);
+  padding: 0.25em 0.75em 0.25em 0.6em;
+  border-radius: var(--radius-pill);
   background: var(--badge-bg);
-  color: var(--color-spruce-900);
+  color: var(--text);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -17,38 +17,43 @@
   flex-shrink: 0;
 }
 
-/* Text/background pairs are checked for WCAG AA in tokens.css */
+/* Text/background pairs are checked for WCAG AA in tokens.css (both themes) */
 .PENDING {
-  --badge-bg: var(--color-neutral-bg);
-  color: var(--color-spruce-900);
+  --badge-bg: var(--neutral-bg);
+  color: var(--text);
 }
 
 .PROCESSING {
-  --badge-bg: var(--color-info-bg);
-  color: var(--color-info);
+  --badge-bg: var(--info-bg);
+  color: var(--info);
 }
 
 .SHIPPED {
-  --badge-bg: var(--color-lime);
-  color: var(--color-spruce-900);
+  --badge-bg: var(--tile-lime);
+  color: var(--text);
 }
 
 .IN_TRANSIT {
-  --badge-bg: var(--color-spruce-900);
-  color: var(--color-milk);
+  --badge-bg: var(--hero-start);
+  color: var(--on-hero);
 }
 
 .DELIVERED {
-  --badge-bg: var(--color-success-bg);
-  color: var(--color-success);
+  --badge-bg: var(--success-bg);
+  color: var(--success);
 }
 
 .FAILED {
-  --badge-bg: var(--color-danger-bg);
-  color: var(--color-danger);
+  --badge-bg: var(--danger-bg);
+  color: var(--danger);
 }
 
 .CANCELLED {
-  --badge-bg: var(--color-neutral-bg);
-  color: var(--color-stone-700);
+  --badge-bg: var(--neutral-bg);
+  color: var(--muted);
+}
+
+.RETURNED {
+  --badge-bg: var(--violet-bg);
+  color: var(--violet);
 }
