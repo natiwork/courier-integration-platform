@@ -4,16 +4,7 @@ import type { OrderStatus } from '../domain/orderStatus.js';
 import { canTransition } from '../domain/orderStatus.js';
 import { invalidStatusTransition, orderNotFound } from '../errors/appError.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
-
-// Declared by hand for now; replaced by z.infer<typeof CreateOrderSchema> in Step 5.
-export interface CreateOrderInput {
-  customerName: string;
-  customerEmail: string;
-  deliveryAddress: string;
-  destinationCity: string;
-  postalCode: string;
-  parcelWeightKg: number;
-}
+import type { CreateOrderInput } from '../validation/orderSchemas.js';
 
 // Business logic for orders. Knows nothing about HTTP or Express.
 export class OrderService {
