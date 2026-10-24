@@ -14,10 +14,11 @@ stateDiagram-v2
     SHIPPED --> FAILED
     IN_TRANSIT --> DELIVERED
     IN_TRANSIT --> FAILED
+    DELIVERED --> RETURNED
     FAILED --> PROCESSING: retry
     FAILED --> CANCELLED
-    DELIVERED --> [*]
     CANCELLED --> [*]
+    RETURNED --> [*]
 ```
 
 | From         | Allowed next statuses                 |
@@ -26,8 +27,9 @@ stateDiagram-v2
 | `PROCESSING` | `SHIPPED`, `FAILED`                   |
 | `SHIPPED`    | `IN_TRANSIT`, `FAILED`                |
 | `IN_TRANSIT` | `DELIVERED`, `FAILED`                 |
-| `DELIVERED`  | — (final)                             |
+| `DELIVERED`  | `RETURNED`                            |
 | `FAILED`     | `PROCESSING` (retry), `CANCELLED`     |
 | `CANCELLED`  | — (final)                             |
+| `RETURNED`   | — (final)                             |
 
 A transition to the same status (e.g. `PENDING → PENDING`) is not a transition and is forbidden too.

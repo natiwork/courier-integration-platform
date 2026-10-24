@@ -11,6 +11,7 @@ const allowed: [OrderStatus, OrderStatus][] = [
   ['SHIPPED', 'FAILED'],
   ['IN_TRANSIT', 'DELIVERED'],
   ['IN_TRANSIT', 'FAILED'],
+  ['DELIVERED', 'RETURNED'],
   ['FAILED', 'PROCESSING'],
   ['FAILED', 'CANCELLED'],
 ];
@@ -37,11 +38,13 @@ describe('canTransition', () => {
     ['SHIPPED', 'PROCESSING'],
     ['PROCESSING', 'CANCELLED'],
     ['IN_TRANSIT', 'CANCELLED'],
+    ['DELIVERED', 'CANCELLED'],
+    ['RETURNED', 'DELIVERED'],
   ] as [OrderStatus, OrderStatus][])('forbids skipping or going back: %s -> %s', (from, to) => {
     expect(canTransition(from, to)).toBe(false);
   });
 
-  it.each(['DELIVERED', 'CANCELLED'] as OrderStatus[])('treats %s as final', (from) => {
+  it.each(['CANCELLED', 'RETURNED'] as OrderStatus[])('treats %s as final', (from) => {
     for (const to of ORDER_STATUSES) {
       expect(canTransition(from, to)).toBe(false);
     }

@@ -6,6 +6,7 @@ export const ORDER_STATUSES = [
   'DELIVERED',
   'FAILED',
   'CANCELLED',
+  'RETURNED',
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -16,9 +17,10 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = 
   PROCESSING: ['SHIPPED', 'FAILED'],
   SHIPPED: ['IN_TRANSIT', 'FAILED'],
   IN_TRANSIT: ['DELIVERED', 'FAILED'],
-  DELIVERED: [],
+  DELIVERED: ['RETURNED'],
   FAILED: ['PROCESSING', 'CANCELLED'], // retry or give up
   CANCELLED: [],
+  RETURNED: [],
 };
 
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
