@@ -52,10 +52,10 @@ describe('generateDemoOrders', () => {
       expect(Date.parse(order.updatedAt)).toBeGreaterThanOrEqual(Date.parse(order.createdAt));
       expect(Date.parse(order.updatedAt)).toBeLessThanOrEqual(NOW.getTime());
 
-      // Refunds go out about a week after the return; until then the return is still PAID.
+      // Refunds go out about 3 days after the return; until then the return is still PAID.
       if (order.status === 'RETURNED') {
         const daysSinceReturn = (NOW.getTime() - Date.parse(order.updatedAt)) / DAY;
-        expect(order.paymentStatus).toBe(daysSinceReturn > 7 ? 'REFUNDED' : 'PAID');
+        expect(order.paymentStatus).toBe(daysSinceReturn > 3 ? 'REFUNDED' : 'PAID');
       }
       if (['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED'].includes(order.status)) {
         expect(order.paymentStatus).not.toBe('REFUNDED');

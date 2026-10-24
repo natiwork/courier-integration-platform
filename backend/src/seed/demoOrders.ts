@@ -133,11 +133,11 @@ function statusForAge(random: () => number, ageDays: number): OrderStatus {
 }
 
 // Payment follows the status and the order's age, like in a real shop:
-// refunds go out about a week after a return, and old invoices have been paid by now.
+// refunds go out about 3 days after a return, and old invoices have been paid by now.
 function paymentFor(random: () => number, status: OrderStatus, ageDays: number, daysSinceUpdate: number): PaymentStatus {
   switch (status) {
     case 'RETURNED':
-      return daysSinceUpdate > 7 ? 'REFUNDED' : 'PAID'; // PAID = refund still pending
+      return daysSinceUpdate > 3 ? 'REFUNDED' : 'PAID'; // PAID = refund still pending
     case 'CANCELLED':
       return pickWeighted(random, [['UNPAID', 60], ['REFUNDED', 40]]);
     case 'PENDING':
@@ -147,7 +147,7 @@ function paymentFor(random: () => number, status: OrderStatus, ageDays: number, 
       return pickWeighted(random, [['PAID', 85], ['UNPAID', 15]]);
     default:
       // A few recent invoices are still open; older ones were settled.
-      return ageDays < 21 ? pickWeighted(random, [['PAID', 95], ['UNPAID', 5]]) : 'PAID';
+      return ageDays < 21 ? pickWeighted(random, [['PAID', 97], ['UNPAID', 3]]) : 'PAID';
   }
 }
 
@@ -236,9 +236,11 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
     const streetNumber = 1 + Math.floor(random() * 140);
     const street = pick(random, place.streets);
 
-    // Never in the future: an order created an hour ago can't have been delivered "in 3 days".
-    const reachedMs = createdMs + daysUntilStatus(random, status) * DAY_MS;
-    const updatedMs = Math.max(createdMs, Math.min(reachedMs, nowMs - Math.round(between(random, 1, 30) * 60_000)));
+    // Never in the future: if the usual delay would end after "now", the status was reached
+    // somewhere between creation and now (spread out, not piled up in the last few minutes).
+    const typicalMs = createdMs + daysUntilStatus(random, status) * DAY_MS;
+    const updatedMs =
+      typicalMs <= nowMs ? typicalMs : Math.round(createdMs + (nowMs - createdMs) * between(random, 0.35, 0.95));
     const paymentStatus = paymentFor(random, status, ageDays, (nowMs - updatedMs) / DAY_MS);
 
     const courier = HANDED_OVER.has(status) || (status === 'FAILED' && random() < 0.5) ? pick(random, COURIERS) : null;
