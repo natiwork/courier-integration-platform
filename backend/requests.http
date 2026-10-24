@@ -19,7 +19,12 @@ Content-Type: application/json
   "deliveryAddress": "12 Analytical Street",
   "destinationCity": "London",
   "postalCode": "N1 9GU",
-  "parcelWeightKg": 2.4
+  "parcelWeightKg": 2.4,
+  "destinationCountry": "GB",
+  "items": [
+    { "sku": "KIT-POUR-01", "name": "Pour-over set", "quantity": 2, "unitPriceCents": 1250 },
+    { "sku": "FLT-100", "name": "Paper filters", "quantity": 1, "unitPriceCents": 499 }
+  ]
 }
 
 ### List orders, newest first (200)
@@ -47,7 +52,12 @@ Content-Type: application/json
   "deliveryAddress": "12 Analytical Street",
   "destinationCity": "London",
   "postalCode": "12#45",
-  "parcelWeightKg": "2.4"
+  "parcelWeightKg": "2.4",
+  "destinationCountry": "GB",
+  "items": [
+    { "sku": "KIT-POUR-01", "name": "Pour-over set", "quantity": 2, "unitPriceCents": 1250 },
+    { "sku": "FLT-100", "name": "Paper filters", "quantity": 1, "unitPriceCents": 499 }
+  ]
 }
 
 ### Invalid: negative weight (400)
@@ -60,7 +70,12 @@ Content-Type: application/json
   "deliveryAddress": "12 Analytical Street",
   "destinationCity": "London",
   "postalCode": "N1 9GU",
-  "parcelWeightKg": -1
+  "parcelWeightKg": -1,
+  "destinationCountry": "GB",
+  "items": [
+    { "sku": "KIT-POUR-01", "name": "Pour-over set", "quantity": 2, "unitPriceCents": 1250 },
+    { "sku": "FLT-100", "name": "Paper filters", "quantity": 1, "unitPriceCents": 499 }
+  ]
 }
 
 ### Invalid: weight above the 100 kg platform limit (400)
@@ -73,7 +88,12 @@ Content-Type: application/json
   "deliveryAddress": "12 Analytical Street",
   "destinationCity": "London",
   "postalCode": "N1 9GU",
-  "parcelWeightKg": 150
+  "parcelWeightKg": 150,
+  "destinationCountry": "GB",
+  "items": [
+    { "sku": "KIT-POUR-01", "name": "Pour-over set", "quantity": 2, "unitPriceCents": 1250 },
+    { "sku": "FLT-100", "name": "Paper filters", "quantity": 1, "unitPriceCents": 499 }
+  ]
 }
 
 ### Invalid: client tries to set system fields (400, unrecognized keys)
@@ -87,6 +107,11 @@ Content-Type: application/json
   "destinationCity": "London",
   "postalCode": "N1 9GU",
   "parcelWeightKg": 2.4,
+  "destinationCountry": "GB",
+  "items": [
+    { "sku": "KIT-POUR-01", "name": "Pour-over set", "quantity": 2, "unitPriceCents": 1250 },
+    { "sku": "FLT-100", "name": "Paper filters", "quantity": 1, "unitPriceCents": 499 }
+  ],
   "status": "DELIVERED",
   "trackingNumber": "FAKE-123"
 }
@@ -99,3 +124,35 @@ Content-Type: application/json
 
 ### Unknown route (404 ROUTE_NOT_FOUND)
 GET {{baseUrl}}/api/does-not-exist
+
+### Create a paid order to Germany, lowercase SKU and country are normalized (201)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Lena Vogt",
+  "customerEmail": "lena.vogt@example.com",
+  "deliveryAddress": "Torstraße 12",
+  "destinationCity": "Berlin",
+  "postalCode": "10115",
+  "destinationCountry": "de",
+  "parcelWeightKg": 1.2,
+  "paymentStatus": "PAID",
+  "items": [{ "sku": "mug-stone-02", "name": "Stoneware mug", "quantity": 3, "unitPriceCents": 1890 }]
+}
+
+### Invalid: client sends totalCents, an unsupported country and a bad item (400)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Lena Vogt",
+  "customerEmail": "lena.vogt@example.com",
+  "deliveryAddress": "Torstraße 12",
+  "destinationCity": "Berlin",
+  "postalCode": "10115",
+  "destinationCountry": "US",
+  "parcelWeightKg": 1.2,
+  "totalCents": 1,
+  "items": [{ "sku": "a b", "name": "Stoneware mug", "quantity": 0, "unitPriceCents": "18.90" }]
+}

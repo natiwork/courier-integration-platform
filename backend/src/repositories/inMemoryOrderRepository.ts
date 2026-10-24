@@ -10,6 +10,7 @@ function orderNumberValue(orderNumber: string): number {
 }
 
 // Keeps orders in a Map. Data is lost on restart; PostgreSQL replaces this in Phase 9.
+// Orders contain nested arrays (items), so copies must be deep: callers can never mutate the store.
 export class InMemoryOrderRepository implements OrderRepository {
   private readonly orders = new Map<string, Order>();
   private nextOrderNumber = FIRST_ORDER_NUMBER;
@@ -17,8 +18,8 @@ export class InMemoryOrderRepository implements OrderRepository {
   async create(newOrder: NewOrder): Promise<Order> {
     const order: Order = { ...newOrder, orderNumber: `${ORDER_NUMBER_PREFIX}${this.nextOrderNumber}` };
     this.nextOrderNumber += 1;
-    this.orders.set(order.id, order);
-    return { ...order };
+    this.orders.set(order.id, structuredClone(order));
+    return structuredClone(order);
   }
 
   async findAll(): Promise<Order[]> {
@@ -30,19 +31,19 @@ export class InMemoryOrderRepository implements OrderRepository {
           b.createdAt.localeCompare(a.createdAt) ||
           orderNumberValue(b.orderNumber) - orderNumberValue(a.orderNumber),
       )
-      .map((order) => ({ ...order }));
+      .map((order) => structuredClone(order));
   }
 
   async findById(id: string): Promise<Order | null> {
     const order = this.orders.get(id);
-    return order ? { ...order } : null;
+    return order ? structuredClone(order) : null;
   }
 
   async update(order: Order): Promise<Order | null> {
     if (!this.orders.has(order.id)) {
       return null;
     }
-    this.orders.set(order.id, { ...order });
-    return { ...order };
+    this.orders.set(order.id, structuredClone(order));
+    return structuredClone(order);
   }
 }

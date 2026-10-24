@@ -3,15 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Express } from 'express';
 import { createApp } from '../../src/app.js';
 import type { OrderRepository } from '../../src/repositories/orderRepository.js';
-
-const validOrder = {
-  customerName: 'Ada Lovelace',
-  customerEmail: 'ada@example.com',
-  deliveryAddress: '12 Analytical Street',
-  destinationCity: 'London',
-  postalCode: 'N1 9GU',
-  parcelWeightKg: 2.4,
-};
+import { validOrderBody as validOrder, validOrderTotalCents } from '../fixtures/orders.js';
 
 // Checks the shared error format and returns the error for further assertions.
 function expectErrorBody(body: unknown, code: string) {
@@ -77,6 +69,68 @@ describe('Orders API', () => {
 
       const error = expectErrorBody(res.body, 'VALIDATION_ERROR');
       expect(error.details?.[0]?.path).toBe('customerName');
+    });
+
+    it('computes totalCents from the items, sets EUR and defaults paymentStatus to UNPAID', async () => {
+      const res = await request(app).post('/api/orders').send(validOrder).expect(201);
+
+      expect(res.body.data).toMatchObject({
+        totalCents: validOrderTotalCents,
+        currency: 'EUR',
+        paymentStatus: 'UNPAID',
+        destinationCountry: 'GB',
+        items: validOrder.items,
+      });
+    });
+
+    it('accepts an explicit paymentStatus and normalizes SKU and country case', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .send({
+          ...validOrder,
+          paymentStatus: 'PAID',
+          destinationCountry: ' gb ',
+          items: [{ sku: 'kit-pour-01', name: 'Pour-over set', quantity: 1, unitPriceCents: 1250 }],
+        })
+        .expect(201);
+
+      expect(res.body.data).toMatchObject({ paymentStatus: 'PAID', destinationCountry: 'GB', totalCents: 1250 });
+      expect(res.body.data.items[0].sku).toBe('KIT-POUR-01');
+    });
+
+    it.each([
+      ['totalCents', { totalCents: 1 }],
+      ['currency', { currency: 'USD' }],
+    ])('rejects a client-supplied %s', async (_field, extra) => {
+      const res = await request(app).post('/api/orders').send({ ...validOrder, ...extra }).expect(400);
+      expectErrorBody(res.body, 'VALIDATION_ERROR');
+    });
+
+    const item = { sku: 'KIT-POUR-01', name: 'Pour-over set', quantity: 1, unitPriceCents: 1250 };
+    it.each([
+      ['no items', { items: [] }, 'items'],
+      ['an unsupported country', { destinationCountry: 'US' }, 'destinationCountry'],
+      ['an invalid payment status', { paymentStatus: 'MAYBE' }, 'paymentStatus'],
+      ['an invalid SKU', { items: [{ ...item, sku: 'a b' }] }, 'items.0.sku'],
+      ['a zero quantity', { items: [{ ...item, quantity: 0 }] }, 'items.0.quantity'],
+      ['a fractional quantity', { items: [{ ...item, quantity: 1.5 }] }, 'items.0.quantity'],
+      ['a zero unit price', { items: [{ ...item, unitPriceCents: 0 }] }, 'items.0.unitPriceCents'],
+      ['a price given in euros as a string', { items: [{ ...item, unitPriceCents: '12.50' }] }, 'items.0.unitPriceCents'],
+    ])('returns 400 for %s', async (_name, override, path) => {
+      const res = await request(app).post('/api/orders').send({ ...validOrder, ...override }).expect(400);
+
+      const error = expectErrorBody(res.body, 'VALIDATION_ERROR');
+      expect(error.details).toEqual([{ path, message: expect.any(String) }]);
+    });
+
+    it('rejects unknown fields inside an item', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .send({ ...validOrder, items: [{ ...item, discount: 50 }] })
+        .expect(400);
+
+      const error = expectErrorBody(res.body, 'VALIDATION_ERROR');
+      expect(error.details?.[0]?.path).toBe('items.0');
     });
 
     it('rejects client-supplied system fields', async () => {

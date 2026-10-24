@@ -1,7 +1,12 @@
 import { z } from 'zod';
+import { SUPPORTED_COUNTRIES } from '../domain/countries.js';
+import { PAYMENT_STATUSES } from '../domain/order.js';
 
 // Platform-wide limit. Courier providers may enforce stricter limits of their own (Phase 5).
 export const MAX_PARCEL_WEIGHT_KG = 100;
+export const MAX_ITEMS_PER_ORDER = 50;
+export const MAX_ITEM_QUANTITY = 999;
+export const MAX_UNIT_PRICE_CENTS = 10_000_000; // €100,000.00
 
 // A trimmed, non-empty string with a length limit and readable error messages.
 function requiredString(label: string, max: number) {
@@ -14,6 +19,26 @@ function requiredString(label: string, max: number) {
     .max(max, `${label} must be at most ${max} characters`);
 }
 
+// A whole number in a range, with readable error messages.
+function boundedInteger(label: string, min: number, max: number) {
+  return z
+    .number({
+      error: (issue) => (issue.input === undefined ? `${label} is required` : `${label} must be a number`),
+    })
+    .int(`${label} must be a whole number`)
+    .min(min, `${label} must be at least ${min}`)
+    .max(max, `${label} must be at most ${max}`);
+}
+
+const OrderItemSchema = z.strictObject({
+  sku: requiredString('SKU', 32)
+    .toUpperCase()
+    .regex(/^[A-Z0-9-]{3,32}$/, 'SKU must be 3–32 letters, digits or hyphens'),
+  name: requiredString('Item name', 120),
+  quantity: boundedInteger('Quantity', 1, MAX_ITEM_QUANTITY),
+  unitPriceCents: boundedInteger('Unit price', 1, MAX_UNIT_PRICE_CENTS),
+});
+
 export const CreateOrderSchema = z.strictObject({
   customerName: requiredString('Customer name', 100),
   // trim + lowercase run first, then the email format is checked on the cleaned value.
@@ -25,6 +50,15 @@ export const CreateOrderSchema = z.strictObject({
   postalCode: requiredString('Postal code', 12)
     .min(2, 'Postal code must be at least 2 characters')
     .regex(/^[A-Za-z0-9 -]+$/, 'Postal code may contain only letters, digits, spaces and hyphens'),
+  destinationCountry: requiredString('Destination country', 2)
+    .toUpperCase()
+    .pipe(z.enum(SUPPORTED_COUNTRIES, 'Destination country must be a supported European country code, e.g. DE')),
+  items: z
+    .array(OrderItemSchema, 'Items must be a list')
+    .min(1, 'Add at least one item')
+    .max(MAX_ITEMS_PER_ORDER, `An order can have at most ${MAX_ITEMS_PER_ORDER} items`),
+  // Optional for the client; a new order is unpaid unless the shop says otherwise.
+  paymentStatus: z.enum(PAYMENT_STATUSES, 'Payment status must be PAID, UNPAID or REFUNDED').default('UNPAID'),
   parcelWeightKg: z
     .number({
       error: (issue) =>

@@ -3,15 +3,10 @@ import { AppError } from '../../src/errors/appError.js';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
 import { OrderService } from '../../src/services/orderService.js';
 import type { CreateOrderInput } from '../../src/validation/orderSchemas.js';
+import { validOrderBody, validOrderTotalCents } from '../fixtures/orders.js';
 
-const input: CreateOrderInput = {
-  customerName: 'Ada Lovelace',
-  customerEmail: 'ada@example.com',
-  deliveryAddress: '12 Analytical Street',
-  destinationCity: 'London',
-  postalCode: 'N1 9GU',
-  parcelWeightKg: 2.4,
-};
+// What validateBody hands to the service: the parsed body, with the paymentStatus default applied.
+const input: CreateOrderInput = { ...validOrderBody, destinationCountry: 'GB', paymentStatus: 'UNPAID' };
 
 // A clock that moves forward one minute on every call, so timestamps are predictable and distinct.
 function steppingClock(start = '2026-01-01T10:00:00.000Z') {
@@ -49,6 +44,13 @@ describe('OrderService', () => {
         updatedAt: '2026-01-01T10:00:00.000Z',
       });
       expect(order.id).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it('computes the total from the items and sets the currency', async () => {
+      const order = await service.createOrder(input);
+
+      expect(order.totalCents).toBe(validOrderTotalCents);
+      expect(order.currency).toBe('EUR');
     });
 
     it('assigns sequential, unique order numbers', async () => {

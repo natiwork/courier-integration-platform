@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { Order } from '../domain/order.js';
+import { computeTotalCents } from '../domain/money.js';
+import { CURRENCY, type Order } from '../domain/order.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import { canTransition } from '../domain/orderStatus.js';
 import { invalidStatusTransition, orderNotFound } from '../errors/appError.js';
@@ -21,6 +22,8 @@ export class OrderService {
     const timestamp = this.now().toISOString();
     return this.repository.create({
       ...input,
+      totalCents: computeTotalCents(input.items),
+      currency: CURRENCY,
       id: randomUUID(),
       status: 'PENDING',
       courierProvider: null,
