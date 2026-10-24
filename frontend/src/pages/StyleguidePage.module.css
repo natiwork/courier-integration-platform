@@ -10,6 +10,12 @@
   border-top: var(--line-hair);
 }
 
+/* The page header already draws a rule above the first section */
+.section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .heading {
   font-size: var(--text-lg);
 }

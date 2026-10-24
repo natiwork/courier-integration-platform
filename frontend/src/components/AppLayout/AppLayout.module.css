@@ -145,6 +145,8 @@
   .shell {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    /* Keeps the sidebar column dark for the full page height; the sidebar itself is sticky */
+    background: linear-gradient(to right, var(--color-spruce-900) var(--sidebar-width), transparent 0);
   }
 
   .sidebar {

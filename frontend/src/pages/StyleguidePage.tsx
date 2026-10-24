@@ -61,7 +61,7 @@ export function StyleguidePage() {
             </Button>
             <Button disabled>Disabled</Button>
             <Button loading={saving} onClick={startSaving}>
-              {saving ? 'Saving shipment' : 'Save shipment (simulated)'}
+              Save shipment (simulated)
             </Button>
           </div>
         </section>

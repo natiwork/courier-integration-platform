@@ -35,9 +35,4 @@
     grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
     gap: var(--space-8);
   }
-
-  .side {
-    padding-left: var(--space-6);
-    border-left: var(--line-hair);
-  }
 }

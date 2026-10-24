@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import styles from './AppLayout.module.css';
 
 interface NavItem {
@@ -20,6 +20,16 @@ const NAV_ITEMS: NavItem[] = [
 export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const { pathname } = useLocation();
+  const previousPathname = useRef(pathname);
+
+  // After in-app navigation, move focus to the new page heading so screen reader users hear
+  // which page opened. Not on the first load: there the first Tab must reach "Skip to content".
+  useEffect(() => {
+    if (previousPathname.current === pathname) return;
+    previousPathname.current = pathname;
+    document.querySelector<HTMLElement>('#main h1')?.focus();
+  }, [pathname]);
 
   // Escape closes the mobile menu and returns focus to the button that opened it.
   useEffect(() => {
@@ -75,7 +85,8 @@ export function AppLayout() {
         </nav>
       </header>
 
-      <main id="main" className={styles.main}>
+      {/* tabIndex={-1}: the skip link can move focus here */}
+      <main id="main" tabIndex={-1} className={styles.main}>
         <Outlet />
       </main>
     </div>
