@@ -13,8 +13,8 @@ const DAY = 24 * 60 * 60 * 1000;
 const orders = generateDemoOrders(NOW);
 
 describe('generateDemoOrders', () => {
-  it('creates 150 orders over the last ~9 months, oldest first, none in the future', () => {
-    expect(orders).toHaveLength(150);
+  it('creates 1,200 orders over the last ~9 months, oldest first, none in the future', () => {
+    expect(orders).toHaveLength(1200);
     const created = orders.map((order) => Date.parse(order.createdAt));
     expect(created).toEqual([...created].sort((a, b) => a - b));
     expect(Math.min(...created)).toBeGreaterThan(NOW.getTime() - 275 * DAY);
@@ -52,7 +52,11 @@ describe('generateDemoOrders', () => {
       expect(Date.parse(order.updatedAt)).toBeGreaterThanOrEqual(Date.parse(order.createdAt));
       expect(Date.parse(order.updatedAt)).toBeLessThanOrEqual(NOW.getTime());
 
-      if (order.status === 'RETURNED') expect(order.paymentStatus).toBe('REFUNDED');
+      // Refunds go out about a week after the return; until then the return is still PAID.
+      if (order.status === 'RETURNED') {
+        const daysSinceReturn = (NOW.getTime() - Date.parse(order.updatedAt)) / DAY;
+        expect(order.paymentStatus).toBe(daysSinceReturn > 7 ? 'REFUNDED' : 'PAID');
+      }
       if (['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED'].includes(order.status)) {
         expect(order.paymentStatus).not.toBe('REFUNDED');
       }
@@ -82,6 +86,9 @@ describe('generateDemoOrders', () => {
     const stats = await new StatsService(repository, { now: () => NOW }).getOverview();
 
     expect(stats.today.orders).toBeGreaterThan(0);
+    // A realistic to-do list, not hundreds of items.
+    expect(stats.needsAttention.total).toBeGreaterThanOrEqual(10);
+    expect(stats.needsAttention.total).toBeLessThanOrEqual(20);
     expect(stats.needsAttention.items.map((item) => item.reason)).toEqual(
       expect.arrayContaining(['FAILED', 'RETURNED', 'UNPAID_OVERDUE']),
     );

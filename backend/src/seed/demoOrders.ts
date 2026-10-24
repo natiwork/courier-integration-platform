@@ -132,19 +132,22 @@ function statusForAge(random: () => number, ageDays: number): OrderStatus {
   return pickWeighted(random, [['DELIVERED', 87], ['RETURNED', 7], ['CANCELLED', 6]]);
 }
 
-function paymentFor(random: () => number, status: OrderStatus): PaymentStatus {
+// Payment follows the status and the order's age, like in a real shop:
+// refunds go out about a week after a return, and old invoices have been paid by now.
+function paymentFor(random: () => number, status: OrderStatus, ageDays: number, daysSinceUpdate: number): PaymentStatus {
   switch (status) {
     case 'RETURNED':
-      return 'REFUNDED';
+      return daysSinceUpdate > 7 ? 'REFUNDED' : 'PAID'; // PAID = refund still pending
     case 'CANCELLED':
       return pickWeighted(random, [['UNPAID', 60], ['REFUNDED', 40]]);
     case 'PENDING':
       return pickWeighted(random, [['PAID', 60], ['UNPAID', 40]]);
     case 'PROCESSING':
     case 'FAILED':
-      return pickWeighted(random, [['PAID', 82], ['UNPAID', 18]]);
+      return pickWeighted(random, [['PAID', 85], ['UNPAID', 15]]);
     default:
-      return pickWeighted(random, [['PAID', 97], ['UNPAID', 3]]); // e.g. invoice not paid yet
+      // A few recent invoices are still open; older ones were settled.
+      return ageDays < 21 ? pickWeighted(random, [['PAID', 95], ['UNPAID', 5]]) : 'PAID';
   }
 }
 
@@ -212,9 +215,9 @@ const PIPELINE: { minDays: number; maxDays: number; status: OrderStatus }[] = [
   { minDays: 2, maxDays: 4, status: 'IN_TRANSIT' },
 ];
 
-// Generates `count` orders spread over the last ~9 months, oldest first.
+// Generates `count` orders (about 4–5 a day) spread over the last ~9 months, oldest first.
 // Statuses, payments and timestamps are generated together so every order is internally consistent.
-export function generateDemoOrders(now: Date, count = 150): NewOrder[] {
+export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
   const random = createRandom(SEED);
   const nowMs = now.getTime();
 
@@ -229,7 +232,6 @@ export function generateDemoOrders(now: Date, count = 150): NewOrder[] {
     const firstName = pick(random, place.firstNames);
     const lastName = pick(random, place.lastNames);
     const status = fixedStatus ?? statusForAge(random, ageDays);
-    const paymentStatus = paymentFor(random, status);
     const items = buildItems(random);
     const streetNumber = 1 + Math.floor(random() * 140);
     const street = pick(random, place.streets);
@@ -237,6 +239,7 @@ export function generateDemoOrders(now: Date, count = 150): NewOrder[] {
     // Never in the future: an order created an hour ago can't have been delivered "in 3 days".
     const reachedMs = createdMs + daysUntilStatus(random, status) * DAY_MS;
     const updatedMs = Math.max(createdMs, Math.min(reachedMs, nowMs - Math.round(between(random, 1, 30) * 60_000)));
+    const paymentStatus = paymentFor(random, status, ageDays, (nowMs - updatedMs) / DAY_MS);
 
     const courier = HANDED_OVER.has(status) || (status === 'FAILED' && random() < 0.5) ? pick(random, COURIERS) : null;
 

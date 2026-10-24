@@ -150,7 +150,9 @@ describe('StatsService.getOverview', () => {
   it('lists orders that need attention, most recent first, with one entry per order', async () => {
     const stats = await statsFor([
       buildOrder({ id: 'failed', status: 'FAILED', paymentStatus: 'UNPAID', createdAt: daysAgo(10), updatedAt: daysAgo(1) }),
-      buildOrder({ id: 'returned', status: 'RETURNED', paymentStatus: 'REFUNDED', createdAt: daysAgo(20), updatedAt: daysAgo(2) }),
+      buildOrder({ id: 'returned', status: 'RETURNED', paymentStatus: 'PAID', createdAt: daysAgo(20), updatedAt: daysAgo(2) }),
+      // Returned and already refunded: settled, so not listed.
+      buildOrder({ id: 'returned-refunded', status: 'RETURNED', paymentStatus: 'REFUNDED', createdAt: daysAgo(25), updatedAt: daysAgo(3) }),
       buildOrder({ id: 'unpaid-old', status: 'PROCESSING', paymentStatus: 'UNPAID', createdAt: daysAgo(4) }),
       buildOrder({ id: 'unpaid-new', status: 'PENDING', paymentStatus: 'UNPAID', createdAt: daysAgo(2) }),
       buildOrder({ id: 'cancelled-unpaid', status: 'CANCELLED', paymentStatus: 'UNPAID', createdAt: daysAgo(30) }),

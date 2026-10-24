@@ -207,6 +207,9 @@ function topProducts(paidOrders: readonly Order[]): OverviewStats['topProducts']
 }
 
 // One entry per order, most recent first. FAILED wins over RETURNED, which wins over an overdue payment.
+//   FAILED          delivery failed
+//   RETURNED        returned and still PAID, i.e. the refund is pending
+//   UNPAID_OVERDUE  UNPAID for more than 3 days and not CANCELLED
 function needsAttention(orders: readonly Order[], nowMs: number): OverviewStats['needsAttention'] {
   const items: AttentionItem[] = [];
   for (const order of orders) {
@@ -218,7 +221,8 @@ function needsAttention(orders: readonly Order[], nowMs: number): OverviewStats[
     };
     if (order.status === 'FAILED') {
       items.push({ ...base, reason: 'FAILED', since: order.updatedAt });
-    } else if (order.status === 'RETURNED') {
+    } else if (order.status === 'RETURNED' && order.paymentStatus === 'PAID') {
+      // Returned but not refunded yet. Once REFUNDED, the return is settled and leaves the list.
       items.push({ ...base, reason: 'RETURNED', since: order.updatedAt });
     } else if (
       order.paymentStatus === 'UNPAID' &&
