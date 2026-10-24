@@ -134,7 +134,7 @@
     font-size: var(--text-base);
   }
 
-  .total::before,
+  .table td.total::before,
   .table td[data-label='Status']::before,
   .table td[data-label='Payment']::before {
     content: none;
