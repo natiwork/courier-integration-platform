@@ -40,6 +40,15 @@ npm run dev        # http://localhost:3000/health
 
 Example requests (valid and invalid) are in [backend/requests.http](backend/requests.http) for the VS Code REST Client extension.
 
+## Demo data
+
+In development the backend fills its in-memory store with **~150 invented demo orders** spread over the last 9 months, so the dashboard has something to show. Everything in them is made up: customers (with `@example.com` addresses), addresses, products, and tracking numbers prefixed with `DEMO-`. The couriers `SwiftParcel` and `NordCargo` are fictional mock providers. The UI labels this data as "Demo data".
+
+- On by default unless `NODE_ENV=production`.
+- Turn it off with `SEED_DEMO_DATA=false npm run dev`, or set it in `backend/.env` (see `backend/.env.example`).
+- The data is generated from a fixed seed, so it is identical on every start apart from the dates, which are relative to "now".
+- Dashboard numbers use UTC day and month boundaries.
+
 ## Run the frontend
 
 ```bash
