@@ -1,0 +1,9 @@
+{
+  // Type-checks tests together with the source code. Never emits: tests are not part of the build.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true
+  },
+  "include": ["../src", "."]
+}
