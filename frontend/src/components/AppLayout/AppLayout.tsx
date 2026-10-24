@@ -13,6 +13,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/shipments', label: 'Shipments' },
   { to: '/couriers', label: 'Couriers' },
   { to: '/integrations', label: 'Integrations' },
+  // The component preview exists only in development builds.
+  ...(import.meta.env.DEV ? [{ to: '/styleguide', label: 'Component preview' }] : []),
 ];
 
 export function AppLayout() {

@@ -1,0 +1,54 @@
+.badge {
+  --badge-bg: var(--color-neutral-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.2em var(--space-2);
+  border-radius: var(--radius-s);
+  background: var(--badge-bg);
+  color: var(--color-spruce-900);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.route {
+  flex-shrink: 0;
+}
+
+/* Text/background pairs are checked for WCAG AA in tokens.css */
+.PENDING {
+  --badge-bg: var(--color-neutral-bg);
+  color: var(--color-spruce-900);
+}
+
+.PROCESSING {
+  --badge-bg: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.SHIPPED {
+  --badge-bg: var(--color-lime);
+  color: var(--color-spruce-900);
+}
+
+.IN_TRANSIT {
+  --badge-bg: var(--color-spruce-900);
+  color: var(--color-milk);
+}
+
+.DELIVERED {
+  --badge-bg: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.FAILED {
+  --badge-bg: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.CANCELLED {
+  --badge-bg: var(--color-neutral-bg);
+  color: var(--color-stone-700);
+}

@@ -1,0 +1,22 @@
+.sections {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--line-hair);
+}
+
+.heading {
+  font-size: var(--text-lg);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}

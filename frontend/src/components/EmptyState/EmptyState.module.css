@@ -1,0 +1,36 @@
+.empty {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  border-left: 2px solid var(--color-spruce-900);
+}
+
+.default {
+  padding: var(--space-3) 0 var(--space-3) var(--space-5);
+}
+
+.compact {
+  gap: var(--space-2);
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-left-color: var(--color-line-strong);
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.compact .title {
+  font-size: var(--text-md);
+}
+
+.description {
+  color: var(--color-text-secondary);
+}
+
+.compact .description {
+  font-size: var(--text-sm);
+}
+
+.action {
+  margin-top: var(--space-2);
+}

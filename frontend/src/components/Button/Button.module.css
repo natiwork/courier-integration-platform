@@ -1,0 +1,102 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-s);
+  font-family: var(--font-text);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.md {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-base);
+}
+
+.sm {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.primary {
+  background: var(--color-spruce-900);
+  color: var(--color-milk);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-spruce-700);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--color-spruce-900);
+  border-color: var(--color-spruce-900);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-neutral-bg);
+}
+
+.quiet {
+  background: transparent;
+  color: var(--color-spruce-900);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  padding-inline: var(--space-2);
+}
+
+.quiet:hover:not(:disabled) {
+  background: var(--color-neutral-bg);
+}
+
+.danger {
+  background: var(--color-danger);
+  color: var(--color-paper);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--color-spruce-900);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Loading: not dimmed like "disabled", the spinner explains why it can't be pressed */
+.button[data-loading] {
+  opacity: 1;
+  cursor: progress;
+}
+
+.button[data-loading] .label {
+  opacity: 0;
+}
+
+.spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1.1em;
+  height: 1.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
