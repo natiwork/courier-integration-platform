@@ -1,0 +1,84 @@
+/*
+ * Design tokens for the "Editorial Logistics Dashboard".
+ * Contrast ratios (WCAG 2.1) are noted where a pair is used for text or UI boundaries.
+ */
+:root {
+  /* Base palette */
+  --color-spruce-900: #13312b; /* main text, navigation, primary button. 12.18:1 on milk */
+  --color-spruce-700: #24584b; /* links. 7.11:1 on milk */
+  --color-milk: #f3efe6; /* page background */
+  --color-paper: #fbf9f4; /* raised surfaces: panels, tables */
+  --color-lime: #c8d67a; /* fills and markers only, never text on light (1.37:1). 8.89:1 against spruce-900 */
+  --color-lime-deep: #5e6b1e; /* lime-tinted text on light. 5.09:1 on milk */
+  --color-stone-700: #4f5650; /* secondary text. 6.58:1 on milk */
+  --color-stone-500: #5f655e; /* muted text. 5.21:1 on milk, 4.71:1 on neutral-bg */
+  --color-line: #d8d2c4; /* decorative dividers */
+  --color-line-strong: #85837a; /* input borders. 3.31:1 on milk */
+
+  /* Semantic colors: text / background pairs */
+  --color-success: #2e6a3d;
+  --color-success-bg: #ddebda; /* 5.23:1 */
+  --color-warning: #7f5300;
+  --color-warning-bg: #f5e6bf; /* 5.40:1 */
+  --color-danger: #a1382b; /* 5.87:1 on milk */
+  --color-danger-bg: #f6ddd7; /* 5.21:1 */
+  --color-info: #2b5a77;
+  --color-info-bg: #dde7ee; /* 5.91:1 */
+  --color-neutral-bg: #e8e4da; /* spruce-900 11.01:1, stone-700 5.95:1 */
+
+  /* Roles */
+  --color-bg: var(--color-milk);
+  --color-surface: var(--color-paper);
+  --color-text: var(--color-spruce-900);
+  --color-text-secondary: var(--color-stone-700);
+  --color-text-muted: var(--color-stone-500);
+  --color-link: var(--color-spruce-700);
+  --color-focus: var(--color-spruce-900);
+  --color-focus-on-dark: var(--color-lime);
+
+  /* Typography */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-text: 'Atkinson Hyperlegible Next Variable', 'Segoe UI', system-ui, sans-serif;
+
+  /* Major third scale (1.25), base 16px */
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.563rem;
+  --text-xl: 1.953rem;
+  --text-2xl: 2.441rem;
+  --text-display: clamp(2.441rem, 6vw, 3.815rem);
+
+  --leading-text: 1.5;
+  --leading-display: 1.05;
+  --measure: 68ch;
+
+  /* Spacing, 4px steps */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* Shape: radius follows hierarchy (controls < panels); navigation and tables have none */
+  --radius-s: 4px;
+  --radius-m: 8px;
+
+  /* Lines */
+  --line-hair: 1px solid var(--color-line);
+  --line-rule: 2px solid var(--color-spruce-900);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* Layout */
+  --sidebar-width: 15rem;
+  --content-max: 76rem;
+
+  /* Motion: only in response to user actions */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+}
