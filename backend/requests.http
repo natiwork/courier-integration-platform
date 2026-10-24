@@ -165,3 +165,6 @@ GET {{baseUrl}}/api/orders?status=PENDING&limit=5
 
 ### Invalid: unknown status (400 VALIDATION_ERROR)
 GET {{baseUrl}}/api/orders?status=LOST
+
+### Dashboard stats (200)
+GET {{baseUrl}}/api/stats/overview
