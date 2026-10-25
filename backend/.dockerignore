@@ -1,0 +1,10 @@
+# Only source, config and migrations go into the build context. Never .env: secrets stay out of images.
+node_modules
+dist
+.env
+.env.*
+tests
+coverage
+*.log
+requests.http
+vitest*.config.ts

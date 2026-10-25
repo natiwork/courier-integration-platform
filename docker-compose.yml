@@ -1,5 +1,6 @@
-# Local PostgreSQL for development and integration tests. Start it with:  docker compose up -d db
-# Credentials come from the git-ignored .env next to this file (copy .env.example and fill it in).
+# The whole app:            docker compose up --build    → http://localhost:8080
+# Only the database (dev):  docker compose up -d db      (then npm run dev in backend/ and frontend/)
+# Credentials come from the git-ignored .env next to this file (copy .env.example; it works as it is).
 services:
   db:
     image: postgres:18.6-alpine
@@ -20,6 +21,34 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+
+  # Runs the migrations on every start, then the API. Not published: the browser reaches it through the frontend.
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      STORAGE: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # A demo: invented orders (only into an empty database) and the labelled webhook simulator.
+      SEED_DEMO_DATA: "true"
+      WEBHOOK_SIMULATOR: "true"
+      # Empty: the container picks a random secret per start (see backend/docker-entrypoint.sh).
+      WEBHOOK_SECRET_SWIFTPARCEL: ${WEBHOOK_SECRET_SWIFTPARCEL:-}
+      WEBHOOK_SECRET_NORDCARGO: ${WEBHOOK_SECRET_NORDCARGO:-}
+
+  # nginx: serves the built app and forwards /api to the backend.
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
 
 volumes:
   # Survives `docker compose down`; only `docker compose down -v` deletes the data.
