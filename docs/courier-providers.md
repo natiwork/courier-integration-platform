@@ -37,7 +37,7 @@ Error codes the mocks return:
 | `SHIPMENT_NOT_FOUND` | permanent | The courier never issued that tracking number |
 | `UNMAPPED_STATUS` | permanent | The courier reported a status we have no translation for |
 
-These results are not exposed over HTTP yet. Shipping an order (Phase 6) will turn permanent errors into `422` and provider failures into `502`/`504`.
+Over HTTP, shipping turns a `permanent` result into `422 PROVIDER_REJECTED` and a `transient` one into `502 PROVIDER_UNAVAILABLE`; see [Shipping in the README](../README.md#shipping). A provider that throws instead of returning a result is treated as unavailable (`PROVIDER_ERROR`), so an order never stays stuck in `PROCESSING`. `checkCapabilities` (`providers/capabilities.ts`) is shared: each mock checks its own limits, and `ShipmentService` checks them before calling the courier at all.
 
 ## The two mock couriers
 
@@ -76,6 +76,14 @@ The gaps are deliberate:
 - NordCargo cannot cancel a shipment.
 
 `tests/providers/statusCoverage.test.ts` fails if a mapping gains or loses a status without this list being updated.
+
+## Mock memory and demo tracking numbers
+
+The mocks keep the shipments they created in memory. Two consequences:
+- After a server restart they no longer know earlier tracking numbers. `GET /api/orders/:id/tracking` then answers `422 PROVIDER_REJECTED` with `SHIPMENT_NOT_FOUND`, and the UI explains why.
+- Demo orders carry `DEMO-…` tracking numbers that no courier ever issued. The tracking endpoint answers `409 DEMO_SHIPMENT` without calling the courier, and the UI shows a label instead of the button.
+
+Nothing fakes an update in either case. The tracking answer is only displayed and never applied to the order.
 
 ## Health on the Couriers page
 

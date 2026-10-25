@@ -12,6 +12,10 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - `GET /api/orders?search=&status=&limit=` lists orders, newest first. `search` matches the order number, customer name or city (case-insensitive), `status` filters by one status, and `limit` is 1–100.
   - `GET /api/orders/:id` returns one order.
   - `POST /api/orders` creates an order and responds with `201` and a `Location` header.
+  - `GET /api/orders/:id/events` returns the order's history, oldest first.
+  - `POST /api/orders/:id/ship` with `{ "providerId", "service" }` hands the order to a courier (see [Shipping](#shipping)).
+  - `GET /api/orders/:id/tracking` asks the courier for its current status. This is read-only and never changes the order.
+- **Order history:** every status change writes an `OrderEvent` (type, from, to, source, message, courier code, time) in the service layer, whichever way the change arrives. See [docs/state-machine.md](docs/state-machine.md#order-events).
 - Orders have line items, a total that the server computes (integer cents, currency EUR), a payment status (`PAID`, `UNPAID`, `REFUNDED`) and a destination country (ISO code, European countries).
 - `GET /api/stats/overview` returns the dashboard numbers, computed from the orders (see [definitions](#dashboard-numbers)).
 - `GET /api/meta/order-form` returns the supported countries, payment statuses and every validation limit, so the order form never hard-codes them.
@@ -21,9 +25,10 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - per-provider status normalization;
   - a registry.
   - Two **fictional mock couriers**: `SwiftParcel` (fast, reliable, up to 100 kg) and `NordCargo` (slower, sometimes temporarily unavailable, up to 30 kg, 11 countries, validates addresses). Their delays and outages are simulated with a seeded generator. No real courier is called.
-- `GET /api/couriers` lists each courier with its capabilities and a health check. For the mocks the check is a **simulated ping**, labelled `"simulated": true`. Shipping orders through a courier is not built yet.
+- `GET /api/couriers` lists each courier with its capabilities and a health check. For the mocks the check is a **simulated ping**, labelled `"simulated": true`.
+- `GET /api/integrations/activity` returns the courier calls this server made (accepted, rejected, unavailable) and a summary per courier.
 - Input validation with Zod: trimmed strings, length limits, email format, parcel weight up to 100 kg, validated items, unknown fields rejected. Clients cannot send totals or system fields.
-- An order status state machine with a single transition table, including `RETURNED` and `CANCELLED`; see [docs/state-machine.md](docs/state-machine.md). Status changes are implemented in the service layer, but there is no HTTP endpoint for them yet.
+- An order status state machine with a single transition table, including `RETURNED` and `CANCELLED`; see [docs/state-machine.md](docs/state-machine.md). Shipping is the only HTTP action that changes a status so far.
 - A unified error format with a request id, also sent in the `X-Request-Id` header:
 
   ```json
@@ -47,7 +52,12 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - recent orders, top destinations and top products.
 - **Shipments**: an orders table with search and a status filter. Both are kept in the URL, so a filtered view can be shared or reloaded.
 - **Shipment details**: items and total, customer and delivery data, a shipment timeline and a route diagram.
-  - The timeline is derived from the current status. Exact times are shown only where they are known (when the order was placed and the latest change).
+  - **Ship this order** (pending orders, and failed ones that no courier took yet):
+    - choose a courier and a service;
+    - couriers that can't take the parcel (country, weight) are disabled, with the reason shown;
+    - a confirmation dialog (native `<dialog>`: focus stays inside, Escape closes, focus returns to the Ship button), then a success or error message for each error code.
+  - **Courier and tracking**: the tracking number with a copy button, and "Ask the courier for the latest status" (read-only). Demo tracking numbers are labelled instead, because no courier has a record of them.
+  - The timeline shows the real time of every step from the order history, and why a shipment failed. "Full history" lists every event, including failed attempts before a retry.
   - The route is a **schematic**. It is labelled as such: it is not a map and shows no live location.
 - **New shipment**: a form to create an order.
   - Fields: customer, delivery address and country, parcel weight, payment status, and a list of items you can add to and remove from.
@@ -65,7 +75,10 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - services and address validation;
   - which of the platform's 31 countries it delivers to.
   - "Check again" runs the health checks again. Order tables and details show the courier's name from the same request.
-- The Integrations page is still a placeholder and says so.
+- **Integrations**:
+  - calls per courier (accepted, rejected, unavailable) and the time of the last call;
+  - a table of recent calls with links to the orders.
+  - Only real calls made by this server are listed. Demo orders were generated, so they never appear.
 
 ## Demo data
 
@@ -73,12 +86,38 @@ In development the backend fills its in-memory store with **~1,200 invented demo
 
 - Everything in them is made up: customers (with `@example.com` addresses), addresses, products, and tracking numbers prefixed with `DEMO-`.
 - Shipped orders name one of the fictional mock couriers by its provider id (`swiftparcel`, `nordcargo`). Each order fits that courier's limits: NordCargo only gets parcels for its 11 countries. The orders were not created through the couriers: the tracking numbers are invented.
+- Every demo order also gets a **history**, one event per step, from its creation to its current status. The steps follow the state machine, and the timestamps lie between `createdAt` and `updatedAt`. The events are marked as generated (`source: "system"`, "Demo data: …"), not as courier calls.
 - The UI shows a **Demo data** label while this data is loaded.
 
 How it works:
 - It is on by default unless `NODE_ENV=production`.
 - Turn it off with `SEED_DEMO_DATA=false npm run dev`, or set it in `backend/.env` (see `backend/.env.example`).
 - The data is generated from a fixed seed, so it is the same on every start. Only the dates change, because they are relative to "now".
+
+## Shipping
+
+`POST /api/orders/:id/ship` with `{ "providerId": "nordcargo", "service": "standard" }`:
+
+1. The order must be `PENDING`, or `FAILED` without a tracking number (a retry).
+2. The courier's published limits (country, weight) are checked first. If the parcel doesn't fit, the courier is never called.
+3. The order moves to `PROCESSING`, and the courier is called.
+4. Accepted: `SHIPPED`, with the courier's tracking number and provider id. Refused or unavailable: `FAILED`, with the courier's code and message in the history.
+
+| Status | Code | When |
+|---|---|---|
+| 200 | — | Shipped. The body is the updated order. |
+| 400 | `VALIDATION_ERROR` | Unknown courier or a service it doesn't offer. |
+| 404 | `ORDER_NOT_FOUND` | No such order. |
+| 409 | `ALREADY_SHIPPED` | The order has a tracking number. Nothing is sent again. |
+| 409 | `INVALID_STATUS_TRANSITION` | The status can't move to `PROCESSING` (e.g. delivered, cancelled). |
+| 409 | `SHIPMENT_IN_PROGRESS` | Another ship request for this order is still waiting for the courier. |
+| 422 | `COURIER_CANNOT_TAKE_ORDER` | Outside the courier's countries or weight limit. Checked before calling it; the order is unchanged. |
+| 422 | `PROVIDER_REJECTED` | The courier refused (e.g. NordCargo without a house number). The order is now `FAILED`. |
+| 502 | `PROVIDER_UNAVAILABLE` | The courier was temporarily unavailable. The order is now `FAILED` and can be shipped again. |
+
+Automatic retries, timeouts and an `Idempotency-Key` come later. A failed attempt can be retried by hand.
+
+`GET /api/orders/:id/tracking` answers `409 NOT_SHIPPED`, `409 DEMO_SHIPMENT` (generated tracking numbers), `422 PROVIDER_REJECTED` with `SHIPMENT_NOT_FOUND` (the mock couriers forget their shipments when the server restarts), or `502`. Its answer is shown, not applied: status updates from couriers will arrive by webhook and be recorded as events.
 
 ## Dashboard numbers
 

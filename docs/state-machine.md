@@ -33,3 +33,17 @@ stateDiagram-v2
 | `RETURNED`   | — (final)                             |
 
 A transition to the same status (e.g. `PENDING → PENDING`) is not a transition and is forbidden too.
+
+## Order events
+
+Every status change writes one `OrderEvent` ([`backend/src/domain/orderEvent.ts`](../backend/src/domain/orderEvent.ts)) with the same timestamp as the change. It happens in `OrderService.changeStatus()`, so it can't be forgotten on any path (HTTP today, courier webhooks and retries later). A forbidden transition writes nothing.
+
+| Type | Written when | Source |
+|---|---|---|
+| `ORDER_CREATED` | an order is created (`fromStatus: null → PENDING`) | `api` |
+| `STATUS_CHANGED` | any other change, e.g. `PENDING → PROCESSING` when shipping is requested | `api`, `system` |
+| `SHIPMENT_CREATED` | the courier accepted the parcel (`PROCESSING → SHIPPED`) | `provider` |
+| `SHIPMENT_REJECTED` | the courier refused (`PROCESSING → FAILED`, with its error code) | `provider` |
+| `PROVIDER_UNAVAILABLE` | the courier couldn't be reached (`PROCESSING → FAILED`) | `provider` |
+
+Events are only appended, never changed or deleted. The Overview's "Updated today" counts today's events, and the Integrations page lists the three `provider` types. The demo history uses `STATUS_CHANGED` with source `system`. With PostgreSQL (Phase 9), the order update and its event will share one transaction.
