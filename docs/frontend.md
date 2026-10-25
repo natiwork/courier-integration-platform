@@ -15,7 +15,7 @@ What the web app does, page by page. The overview is in the [README](../README.m
   - recent orders, top destinations and top products.
 - **Shipments**: an orders table with search and a status filter. Both are kept in the URL, so a filtered view can be shared or reloaded.
 - **Shipment details**: items and total, customer and delivery data, a shipment timeline and a route diagram.
-  - **Ship this order** (pending orders, and failed ones that no courier took yet):
+  - **Ship this order** (pending orders, orders being prepared, and failed ones that no courier took yet, while no other ship request is running):
     - choose a courier and a service;
     - couriers that can't take the parcel (country, weight) are disabled, with the reason shown;
     - a confirmation dialog (native `<dialog>`: focus stays inside, Escape closes, focus returns to the Ship button), then a success or error message for each error code.

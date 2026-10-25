@@ -9,7 +9,7 @@ A full-stack app for managing e-commerce orders and handing them to courier serv
 | Overview (light) | Overview (dark) |
 |---|---|
 | ![Overview dashboard, light theme](docs/screenshots/overview-light.png) | ![Overview dashboard, dark theme](docs/screenshots/overview-dark.png) |
-| **Order details** with the shipment timeline and the webhook simulator | **Integrations**: real courier calls and checked webhooks |
+| **Order details** with the shipment timeline and the webhook simulator | **Integrations**: calls made to the mock couriers and the checked webhooks |
 | ![Order details with timeline](docs/screenshots/order-details.png) | ![Integrations page](docs/screenshots/integrations.png) |
 | **Shipments** with search and status filter | **Couriers** with capabilities and coverage |
 | ![Shipments list](docs/screenshots/shipments.png) | ![Couriers page](docs/screenshots/couriers.png) |
