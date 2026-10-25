@@ -1,5 +1,6 @@
 import type { CountryCode } from '../domain/countries.js';
 import { computeTotalCents } from '../domain/money.js';
+import { createRandom } from '../lib/random.js';
 import { CURRENCY, type OrderItem, type PaymentStatus } from '../domain/order.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type { NewOrder } from '../repositories/orderRepository.js';
@@ -10,18 +11,6 @@ import type { NewOrder } from '../repositories/orderRepository.js';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HISTORY_DAYS = 270; // ~9 months
 const SEED = 20260101;
-
-// mulberry32: a tiny deterministic random number generator, so the same seed always gives the same data.
-function createRandom(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 interface City {
   city: string;
