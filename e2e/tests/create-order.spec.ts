@@ -34,3 +34,37 @@ test('the form shows what to fix, then a double click creates exactly one order'
   expect(found.data).toHaveLength(1);
   expect(found.data[0]).toMatchObject({ customerName, totalCents: 998, status: 'PENDING' });
 });
+
+// A double click is already stopped by the disabled button (React re-renders between the clicks). Two submits in
+// the same tick are not: the synchronous submittingRef guard in CreateOrderForm stops the second one before it
+// leaves the browser. (Even if it did, both would carry the same Idempotency-Key and the server would replay the
+// first answer, so counting orders alone wouldn't prove the guard: the test counts requests too.)
+test('two submits in the same tick send one request and create exactly one order', async ({ page, request }) => {
+  const posts: string[] = [];
+  page.on('request', (sent) => {
+    if (sent.method() === 'POST' && new URL(sent.url()).pathname === '/api/orders') posts.push(sent.url());
+  });
+  await page.goto('/shipments/new');
+  const customerName = `E2E Tick ${Date.now().toString(36)}`;
+  await page.getByLabel('Full name').fill(customerName);
+  await page.getByLabel('Email', { exact: true }).fill('tick@example.com');
+  await page.getByLabel('Street address').fill('Torstraße 12');
+  await page.getByLabel('City', { exact: true }).fill('Berlin');
+  await page.getByLabel('Postal code').fill('10115');
+  await page.getByLabel('Country').selectOption('DE');
+  await page.getByLabel('Parcel weight (kg)').fill('1.5');
+  await page.getByLabel('SKU').fill('FLT-100');
+  await page.getByLabel('Item name').fill('Paper filters');
+  await page.getByLabel('Quantity').fill('1');
+  await page.getByLabel('Unit price (€)').fill('4.99');
+
+  await page.locator('form').filter({ has: page.getByRole('button', { name: 'Create shipment' }) }).evaluate((form: HTMLFormElement) => {
+    form.requestSubmit();
+    form.requestSubmit();
+  });
+
+  await expect(page).toHaveURL(/\/shipments\/[0-9a-f-]{36}$/);
+  expect(posts).toHaveLength(1);
+  const found = await (await request.get(`${API_URL}/api/orders`, { params: { search: customerName } })).json();
+  expect(found.data).toHaveLength(1);
+});
