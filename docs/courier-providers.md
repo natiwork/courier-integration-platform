@@ -29,7 +29,7 @@ Error codes the mocks return:
 
 | Code | Kind | When |
 |---|---|---|
-| `PROVIDER_UNAVAILABLE` | transient | NordCargo, in about 20% of calls |
+| `PROVIDER_UNAVAILABLE` | transient | NordCargo, in about 20% of calls (retried, up to 3 attempts) |
 | `WEIGHT_LIMIT_EXCEEDED` | permanent | The parcel is over the courier's max weight |
 | `UNSUPPORTED_DESTINATION` | permanent | The courier doesn't deliver to that country |
 | `UNSUPPORTED_SERVICE` | permanent | Unknown service id |
@@ -47,7 +47,7 @@ Over HTTP, shipping turns a `permanent` result into `422 PROVIDER_REJECTED` and 
 | Countries | All 31 platform countries | DK, SE, NO, FI, IS, EE, LV, LT, DE, PL, NL |
 | Services | Express, Standard | Standard, Economy |
 | Address validation | No | Yes: postal code and house number required |
-| Simulated call delay | 80–200 ms | 400–1200 ms |
+| Simulated call delay | 80–200 ms | 400–1200 ms; 2.5–4 s in about 5% of calls (times out) |
 | Temporary failures | Never | About 20% of calls |
 | Tracking number | `SP` + 10 digits | `NC-` + 10 digits |
 | Status format | lowercase words | numeric event codes |
@@ -76,6 +76,10 @@ The gaps are deliberate:
 - NordCargo cannot cancel a shipment.
 
 `tests/providers/statusCoverage.test.ts` fails if a mapping gains or loses a status without this list being updated.
+
+## Cancellation
+
+`createShipment` and `getShipmentStatus` take `{ signal }` (`CallOptions`). When our timeout fires, the signal is aborted. A real integration passes it to `fetch()`, and the mocks stop their simulated delay. See [reliability.md](reliability.md).
 
 ## Mock memory and demo tracking numbers
 

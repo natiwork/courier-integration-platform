@@ -37,6 +37,11 @@ A full-stack platform for managing e-commerce orders and courier service integra
   ```
 
   Internal error details and stack traces are logged and never returned to the client.
+- **Reliability** (see [docs/reliability.md](docs/reliability.md)):
+  - a timeout on every courier call (`PROVIDER_TIMEOUT_MS`, 2 s);
+  - up to 3 attempts with exponential backoff and jitter for temporary courier failures;
+  - `Idempotency-Key` on order creation and shipping;
+  - structured JSON logs with the request id on every line and every courier attempt logged, with no personal data.
 - Environment variables are validated at startup; see `backend/.env.example`.
 - Unit and API tests (Vitest + Supertest).
 
@@ -114,10 +119,12 @@ How it works:
 | 409 | `ORDER_NOT_PAID` | The order is unpaid or refunded. Record the payment first (`mark-paid`). |
 | 409 | `SHIPMENT_IN_PROGRESS` | Another ship request for this order is still waiting for the courier. |
 | 422 | `COURIER_CANNOT_TAKE_ORDER` | Outside the courier's countries or weight limit. Checked before calling it; the order is unchanged. |
+| 422 | `IDEMPOTENCY_KEY_REUSED` | The `Idempotency-Key` was already used for a different request. |
 | 422 | `PROVIDER_REJECTED` | The courier refused (e.g. NordCargo without a house number). The order is now `FAILED`. |
-| 502 | `PROVIDER_UNAVAILABLE` | The courier was temporarily unavailable. The order is now `FAILED` and can be shipped again. |
+| 502 | `PROVIDER_UNAVAILABLE` | The courier was still unavailable after 3 attempts. The order is now `FAILED` and can be shipped again. |
+| 504 | `PROVIDER_TIMEOUT` | The courier didn't answer within `PROVIDER_TIMEOUT_MS`. The order is now `FAILED`. Not retried automatically, because the courier may have created the shipment. |
 
-Automatic retries, timeouts and an `Idempotency-Key` come later. A failed attempt can be retried by hand.
+Temporary failures are retried automatically, up to 3 attempts. A failed shipment can be shipped again by hand ("Try shipping again"). Send an `Idempotency-Key` to make a request safe to repeat. See [docs/reliability.md](docs/reliability.md).
 
 `GET /api/orders/:id/tracking` answers `409 NOT_SHIPPED`, `409 DEMO_SHIPMENT` (generated tracking numbers), `422 PROVIDER_REJECTED` with `SHIPMENT_NOT_FOUND` (the mock couriers forget their shipments when the server restarts), or `502`. Its answer is shown, not applied: status updates from couriers will arrive by webhook and be recorded as events.
 
