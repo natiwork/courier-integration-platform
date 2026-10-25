@@ -38,7 +38,9 @@ const NOT_RECORDED = 'Time not recorded';
 // The stages come from the current status; their times come from the order's events.
 // After a retry a status can appear twice: the latest event is the one that counts.
 export function buildStages(order: Order, events: readonly OrderEvent[]): Stage[] {
-  const latest = (status: OrderStatus) => events.findLast((event) => event.toStatus === status);
+  // A recorded payment keeps the status, so it never dates a stage.
+  const latest = (status: OrderStatus) =>
+    events.findLast((event) => event.type !== 'PAYMENT_RECORDED' && event.toStatus === status);
 
   const timed = (status: OrderStatus): Pick<Stage, 'time' | 'dateTime' | 'detail'> => {
     const event = latest(status);

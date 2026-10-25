@@ -3,6 +3,33 @@
   gap: var(--space-5);
 }
 
+.payment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius-m);
+  background: var(--warning-bg);
+  color: var(--text);
+}
+
+.payment p {
+  flex: 1 1 22rem;
+  max-width: var(--measure);
+}
+
+.paymentStatus:empty {
+  display: none;
+}
+
+.paymentStatus {
+  color: var(--success);
+  font-weight: 700;
+}
+
 .lastFailure {
   padding: var(--space-3) var(--space-4);
   border-left: 4px solid var(--danger);

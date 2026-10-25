@@ -64,6 +64,23 @@ export function providerUnavailable(providerName: string, detail: ProviderErrorD
   );
 }
 
+export function orderNotPaid(orderNumber: string, paymentStatus: string): AppError {
+  return new AppError(
+    'ORDER_NOT_PAID',
+    `Order ${orderNumber} is ${paymentStatus.toLowerCase()}: only paid orders can be shipped`,
+    409,
+    [{ paymentStatus }],
+  );
+}
+
+export function paymentAlreadyRecorded(orderNumber: string, paymentStatus: string): AppError {
+  return new AppError('PAYMENT_ALREADY_RECORDED', `Order ${orderNumber} is already ${paymentStatus.toLowerCase()}`, 409);
+}
+
+export function orderCancelled(orderNumber: string): AppError {
+  return new AppError('ORDER_CANCELLED', `Order ${orderNumber} is cancelled`, 409);
+}
+
 export function notShipped(orderNumber: string): AppError {
   return new AppError('NOT_SHIPPED', `Order ${orderNumber} has not been handed to a courier yet`, 409);
 }

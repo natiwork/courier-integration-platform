@@ -8,6 +8,7 @@ export const ORDER_EVENT_TYPES = [
   'SHIPMENT_CREATED', // the courier accepted the parcel
   'SHIPMENT_REJECTED', // the courier said no (permanent error)
   'PROVIDER_UNAVAILABLE', // the courier could not be reached or asked to try later (transient error)
+  'PAYMENT_RECORDED', // the shop recorded the payment; the status stays the same
 ] as const;
 
 export type OrderEventType = (typeof ORDER_EVENT_TYPES)[number];
@@ -17,6 +18,12 @@ export const PROVIDER_EVENT_TYPES: readonly OrderEventType[] = ['SHIPMENT_CREATE
 
 // Who caused the change: our API, a courier's answer, a courier's webhook (Phase 8) or the system itself.
 export type EventSource = 'api' | 'provider' | 'webhook' | 'system';
+
+// Most events move the order to another status. PAYMENT_RECORDED doesn't: its fromStatus and toStatus are
+// both the status at that moment, so the timeline and "Updated today" must skip it.
+export function isStatusChange(event: Pick<OrderEvent, 'type'>): boolean {
+  return event.type !== 'PAYMENT_RECORDED';
+}
 
 export interface OrderEvent {
   id: string;

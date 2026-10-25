@@ -1,9 +1,9 @@
 import { useId, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
-import { shipOrder } from '../../api/orders';
+import { markOrderPaid, shipOrder } from '../../api/orders';
 import { useCouriers } from '../../context/couriersContext';
 import { courierProblem } from '../../lib/courierEligibility';
-import { countryName, formatNumber } from '../../lib/format';
+import { countryName, formatMoney, formatNumber } from '../../lib/format';
 import type { Order } from '../../types/order';
 import { Button } from '../Button/Button';
 import { ConfirmationDialog } from '../ConfirmationDialog/ConfirmationDialog';
@@ -19,11 +19,13 @@ interface ShipPanelProps {
   // Why the previous attempt failed, from the order history, when this is a retry.
   lastFailure?: string;
   onResult: (result: ShipResult) => void;
+  // The payment was recorded: the page reloads the order (it is now shippable) and the dashboard numbers.
+  onPaymentRecorded: () => void;
 }
 
 // Courier and service choice for an order that hasn't been handed over yet, then a confirmation.
 // Couriers that can't take this parcel are shown but disabled, with the reason next to them.
-export function ShipPanel({ order, lastFailure, onResult }: ShipPanelProps) {
+export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: ShipPanelProps) {
   const couriers = useCouriers();
   const id = useId();
   const [chosenCourierId, setChosenCourierId] = useState<string | null>(null);
@@ -32,6 +34,10 @@ export function ShipPanel({ order, lastFailure, onResult }: ShipPanelProps) {
   const [busy, setBusy] = useState(false);
   // Synchronous guard: two clicks in the same tick must not send two requests (state updates too late).
   const submittingRef = useRef(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const paid = order.paymentStatus === 'PAID';
 
   if (couriers.status === 'error' && !couriers.data) {
     return (
@@ -54,6 +60,21 @@ export function ShipPanel({ order, lastFailure, onResult }: ShipPanelProps) {
   const service = courier?.capabilities.services.find((s) => s.id === chosenServiceId) ?? courier?.capabilities.services[0];
   const destination = `${order.destinationCity}, ${countryName(order.destinationCountry)}`;
 
+  async function recordPayment() {
+    if (recordingPayment) return;
+    setRecordingPayment(true);
+    try {
+      await markOrderPaid(order.id);
+      setPaymentMessage('Payment recorded. The order can be shipped now.');
+      onPaymentRecorded();
+    } catch (error) {
+      setPaymentMessage(`The payment couldn't be recorded: ${error instanceof Error ? error.message : 'something went wrong'}.`);
+    } finally {
+      setRecordingPayment(false);
+      setConfirmingPayment(false);
+    }
+  }
+
   async function confirm() {
     if (submittingRef.current || !courier || !service) return;
     submittingRef.current = true;
@@ -72,6 +93,43 @@ export function ShipPanel({ order, lastFailure, onResult }: ShipPanelProps) {
 
   return (
     <div className={styles.panel}>
+      {!paid && (
+        <div className={styles.payment} id={`${id}-payment`}>
+          <p>
+            {order.paymentStatus === 'UNPAID' ? (
+              <>
+                <strong>Payment not received yet.</strong> Unpaid orders can't be shipped. Record the payment of {formatMoney(order.totalCents)} once
+                it has arrived.
+              </>
+            ) : (
+              <>
+                <strong>This order was refunded.</strong> Refunded orders can't be shipped.
+              </>
+            )}
+          </p>
+          {order.paymentStatus === 'UNPAID' && (
+            <Button variant="secondary" onClick={() => setConfirmingPayment(true)}>
+              Mark as paid
+            </Button>
+          )}
+          <ConfirmationDialog
+            open={confirmingPayment}
+            title={`Mark ${order.orderNumber} as paid?`}
+            confirmLabel="Mark as paid"
+            onConfirm={recordPayment}
+            onCancel={() => setConfirmingPayment(false)}
+            busy={recordingPayment}
+          >
+            <p>
+              Do this once {formatMoney(order.totalCents)} has arrived. The payment is added to the order history and the order can then be shipped.
+            </p>
+          </ConfirmationDialog>
+        </div>
+      )}
+      <p className={styles.paymentStatus} role="status">
+        {paymentMessage}
+      </p>
+
       {lastFailure && (
         <p className={styles.lastFailure}>
           <strong>Last attempt failed.</strong> {lastFailure}
@@ -152,7 +210,11 @@ export function ShipPanel({ order, lastFailure, onResult }: ShipPanelProps) {
             <p className={styles.summary}>
               {formatNumber(order.parcelWeightKg)} kg to {destination}
             </p>
-            <Button onClick={() => setConfirming(true)} disabled={busy}>
+            <Button
+              onClick={() => setConfirming(true)}
+              disabled={busy || !paid}
+              aria-describedby={paid ? undefined : `${id}-payment`}
+            >
               Ship with {courier.name}
             </Button>
           </div>

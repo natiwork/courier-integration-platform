@@ -13,6 +13,7 @@ describe('shipErrorMessage', () => {
     [new ApiError(409, 'INVALID_STATUS_TRANSITION', 'Cannot change…', 'req-1'), "This order can't be shipped now", 'current status'],
     [new ApiError(409, 'SHIPMENT_IN_PROGRESS', '…', 'req-1'), 'This order is already being shipped', 'waiting for the courier'],
     [new ApiError(404, 'ORDER_NOT_FOUND', '…', 'req-1'), 'This order no longer exists', 'shipments list'],
+    [new ApiError(409, 'ORDER_NOT_PAID', '…', 'req-1'), "Unpaid orders can't be shipped", 'Record the payment first'],
     [new ApiError(400, 'VALIDATION_ERROR', '…', 'req-1', [{ path: 'service', message: 'NordCargo has no "express" service.' }]), 'Choose a courier and a service', 'NordCargo has no "express" service.'],
     [new ApiError(0, 'NETWORK_ERROR', "The server didn't respond."), 'The server could not be reached', 'The order was not changed.'],
   ])('explains %s', (error, title, text) => {

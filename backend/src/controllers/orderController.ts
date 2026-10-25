@@ -40,5 +40,10 @@ export function createOrderController(orderService: OrderService, shipmentServic
     res.status(200).json({ data: report });
   };
 
-  return { list, getById, create, events, ship, tracking };
+  const markPaid: RequestHandler<{ id: string }> = async (req, res) => {
+    const order = await orderService.markPaid(req.params.id);
+    res.status(200).json({ data: order });
+  };
+
+  return { list, getById, create, events, ship, tracking, markPaid };
 }

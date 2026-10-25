@@ -10,6 +10,8 @@ import { generateDemoEvents, generateDemoOrders } from '../../src/seed/demoOrder
 import { FakeProvider } from '../fixtures/fakeProvider.js';
 import { validOrderBody } from '../fixtures/orders.js';
 
+const paidOrder = { ...validOrderBody, paymentStatus: 'PAID' };
+
 const ship = { providerId: 'fake', service: 'standard' };
 
 describe('GET /api/integrations/activity', () => {
@@ -20,7 +22,7 @@ describe('GET /api/integrations/activity', () => {
     providerRegistry.register(new SwiftParcelProvider({ random: createRandom(1), simulateLatency: false }));
     let tick = Date.parse('2026-10-24T09:00:00.000Z');
     const app = createApp({ providerRegistry, now: () => new Date((tick += 1000)) });
-    const newOrder = async () => (await request(app).post('/api/orders').send(validOrderBody).expect(201)).body.data;
+    const newOrder = async () => (await request(app).post('/api/orders').send(paidOrder).expect(201)).body.data;
 
     const first = await newOrder();
     await request(app).post(`/api/orders/${first.id}/ship`).send(ship).expect(200);
@@ -51,7 +53,7 @@ describe('GET /api/integrations/activity', () => {
 
   it('does not count refusals made before calling the courier', async () => {
     const app = createApp();
-    const id = (await request(app).post('/api/orders').send({ ...validOrderBody, destinationCountry: 'IT' }).expect(201)).body.data.id;
+    const id = (await request(app).post('/api/orders').send({ ...paidOrder, destinationCountry: 'IT' }).expect(201)).body.data.id;
     await request(app).post(`/api/orders/${id}/ship`).send({ providerId: 'nordcargo', service: 'standard' }).expect(422);
 
     const res = await request(app).get('/api/integrations/activity').expect(200);

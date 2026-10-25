@@ -45,5 +45,6 @@ Every status change writes one `OrderEvent` ([`backend/src/domain/orderEvent.ts`
 | `SHIPMENT_CREATED` | the courier accepted the parcel (`PROCESSING → SHIPPED`) | `provider` |
 | `SHIPMENT_REJECTED` | the courier refused (`PROCESSING → FAILED`, with its error code) | `provider` |
 | `PROVIDER_UNAVAILABLE` | the courier couldn't be reached (`PROCESSING → FAILED`) | `provider` |
+| `PAYMENT_RECORDED` | the shop recorded the payment; the status stays the same (`fromStatus = toStatus`) | `api` |
 
-Events are only appended, never changed or deleted. The Overview's "Updated today" counts today's events, and the Integrations page lists the three `provider` types. The demo history uses `STATUS_CHANGED` with source `system`. With PostgreSQL (Phase 9), the order update and its event will share one transaction.
+Events are only appended, never changed or deleted. `PAYMENT_RECORDED` is not a status change (`isStatusChange()`), so the timeline and "Updated today" skip it. The Overview's "Updated today" counts today's events, and the Integrations page lists the three `provider` types. The demo history uses `STATUS_CHANGED` with source `system`. With PostgreSQL (Phase 9), the order update and its event will share one transaction.

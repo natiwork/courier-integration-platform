@@ -8,6 +8,8 @@ import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRep
 import { FakeProvider } from '../fixtures/fakeProvider.js';
 import { buildOrder, validOrderBody } from '../fixtures/orders.js';
 
+const paidOrder = { ...validOrderBody, paymentStatus: 'PAID' };
+
 const SHIPPED_AT = new Date('2026-10-24T08:00:00.000Z');
 const HOUR = 60 * 60 * 1000;
 
@@ -26,7 +28,7 @@ function setup() {
 describe('GET /api/orders/:id/tracking', () => {
   it("shows the courier's current status, translated, without changing the order", async () => {
     const { app, setNow } = setup();
-    const id = (await request(app).post('/api/orders').send(validOrderBody).expect(201)).body.data.id;
+    const id = (await request(app).post('/api/orders').send(paidOrder).expect(201)).body.data.id;
     const shipped = (await request(app).post(`/api/orders/${id}/ship`).send({ providerId: 'swiftparcel', service: 'standard' }).expect(200)).body.data;
     setNow(new Date(SHIPPED_AT.getTime() + 7 * HOUR));
 
@@ -48,7 +50,7 @@ describe('GET /api/orders/:id/tracking', () => {
 
   it('answers 409 NOT_SHIPPED for an order no courier has yet', async () => {
     const { app } = setup();
-    const id = (await request(app).post('/api/orders').send(validOrderBody).expect(201)).body.data.id;
+    const id = (await request(app).post('/api/orders').send(paidOrder).expect(201)).body.data.id;
 
     const res = await request(app).get(`/api/orders/${id}/tracking`).expect(409);
     expect(res.body.error).toMatchObject({ code: 'NOT_SHIPPED', message: 'Order ORD-1001 has not been handed to a courier yet' });

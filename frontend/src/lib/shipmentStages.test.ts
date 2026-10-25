@@ -81,6 +81,14 @@ describe('buildStages', () => {
     expect(stages[2]).toMatchObject({ label: 'Shipping failed', tone: 'danger', detail: 'NordCargo rejected the shipment: no house number' });
   });
 
+  it('never dates a stage with a recorded payment, which keeps the status', () => {
+    const stages = buildStages(order('PENDING'), [
+      event('PENDING', '2026-10-24T08:00:00.000Z', { type: 'ORDER_CREATED' }),
+      event('PENDING', '2026-10-24T11:00:00.000Z', { type: 'PAYMENT_RECORDED' }),
+    ]);
+    expect(stages[0]!.dateTime).toBe('2026-10-24T08:00:00.000Z');
+  });
+
   it('says so honestly when a step has no recorded event', () => {
     const stages = buildStages(order('PROCESSING'), []);
     expect(stages[0]!.time).toBe('Time not recorded');

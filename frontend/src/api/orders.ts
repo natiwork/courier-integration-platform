@@ -52,6 +52,11 @@ export function shipOrder(id: string, payload: ShipOrderPayload): Promise<Order>
   return apiPost<Order>(`/api/orders/${encodeURIComponent(id)}/ship`, payload);
 }
 
+// UNPAID → PAID. Only paid orders can be shipped.
+export function markOrderPaid(id: string): Promise<Order> {
+  return apiPost<Order>(`/api/orders/${encodeURIComponent(id)}/mark-paid`, {});
+}
+
 // Mirrors TrackingReport in backend/src/services/shipmentService.ts. Read-only: asking never changes the order.
 export interface TrackingReport {
   providerId: string;

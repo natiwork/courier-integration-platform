@@ -4,7 +4,7 @@ import { CURRENCY, type Order } from '../domain/order.js';
 import type { EventSource, OrderEvent, OrderEventType } from '../domain/orderEvent.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import { canTransition } from '../domain/orderStatus.js';
-import { invalidStatusTransition, orderNotFound } from '../errors/appError.js';
+import { invalidStatusTransition, orderCancelled, orderNotFound, paymentAlreadyRecorded } from '../errors/appError.js';
 import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderFilter, OrderRepository } from '../repositories/orderRepository.js';
 import type { CreateOrderInput } from '../validation/orderSchemas.js';
@@ -93,6 +93,24 @@ export class OrderService {
       throw orderNotFound(id);
     }
     await this.record(id, order.status, to, timestamp, change);
+    return updated;
+  }
+
+  // The shop received the money (bank transfer, invoice). Only UNPAID → PAID; refunds are not handled here.
+  // Recorded as an event too, so the history shows when and how the order became shippable.
+  async markPaid(id: string): Promise<Order> {
+    const order = await this.getOrderById(id);
+    if (order.status === 'CANCELLED') throw orderCancelled(order.orderNumber);
+    if (order.paymentStatus !== 'UNPAID') throw paymentAlreadyRecorded(order.orderNumber, order.paymentStatus);
+
+    const timestamp = this.now().toISOString();
+    const updated = await this.repository.update({ ...order, paymentStatus: 'PAID', updatedAt: timestamp });
+    if (!updated) throw orderNotFound(id);
+    await this.record(id, order.status, order.status, timestamp, {
+      type: 'PAYMENT_RECORDED',
+      source: 'api',
+      message: 'Payment recorded',
+    });
     return updated;
   }
 

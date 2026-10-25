@@ -34,6 +34,8 @@ export function shipErrorMessage(error: unknown): ErrorMessage {
         return { title: "This order can't be shipped now", text: 'Its status changed in the meantime. The page now shows the current status.' };
       case 'SHIPMENT_IN_PROGRESS':
         return { title: 'This order is already being shipped', text: 'Another request is waiting for the courier. Check the result in a moment.' };
+      case 'ORDER_NOT_PAID':
+        return { title: "Unpaid orders can't be shipped", text: 'Record the payment first, then ship the order. Nothing was sent to the courier.' };
       case 'COURIER_CANNOT_TAKE_ORDER':
         return { title: "This courier can't take the order", text: `${courierText(error)}. Choose another courier. The order was not changed.` };
       case 'PROVIDER_REJECTED':

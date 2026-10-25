@@ -131,7 +131,16 @@ export function OrderDetailsPage() {
           <Skeleton label="Loading route" lines={[{ height: '22rem' }]} />
         </div>
       ) : (
-        <OrderDetails order={current} events={events} onShipResult={handleShipResult} />
+        <OrderDetails
+          order={current}
+          events={events}
+          onShipResult={handleShipResult}
+          onPaymentRecorded={() => {
+            order.reload();
+            events.reload();
+            stats.reload();
+          }}
+        />
       )}
     </>
   );
@@ -141,9 +150,10 @@ interface OrderDetailsProps {
   order: Order;
   events: ApiState<OrderEvent[]>;
   onShipResult: (result: ShipResult) => void;
+  onPaymentRecorded: () => void;
 }
 
-function OrderDetails({ order, events, onShipResult }: OrderDetailsProps) {
+function OrderDetails({ order, events, onShipResult, onPaymentRecorded }: OrderDetailsProps) {
   // Events of another order may still be on screen for a moment after navigating: only use matching ones.
   const history = events.data?.every((event) => event.orderId === order.id) ? events.data : undefined;
   // PENDING, or FAILED before any courier took it (a retry). A tracking number means it already shipped.
@@ -153,7 +163,7 @@ function OrderDetails({ order, events, onShipResult }: OrderDetailsProps) {
     <div className={styles.grid}>
       {shippable ? (
         <Card title={order.status === 'FAILED' ? 'Try shipping again' : 'Ship this order'} icon={<Send size={18} />} className={styles.wide}>
-          <ShipPanel order={order} lastFailure={lastFailure} onResult={onShipResult} />
+          <ShipPanel order={order} lastFailure={lastFailure} onResult={onShipResult} onPaymentRecorded={onPaymentRecorded} />
         </Card>
       ) : (
         <Card title="Courier and tracking" icon={<Truck size={18} />} className={styles.wide}>

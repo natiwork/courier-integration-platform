@@ -1,5 +1,6 @@
 import { CURRENCY, type Order } from '../domain/order.js';
 import { ORDER_STATUSES, type OrderStatus } from '../domain/orderStatus.js';
+import { isStatusChange } from '../domain/orderEvent.js';
 import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
 
@@ -80,7 +81,7 @@ export class StatsService {
 
     const createdToday = orders.filter((order) => dayKey(order.createdAt) === todayKey);
     const changesToday = (await this.events.findRecent({ since: `${todayKey}T00:00:00.000Z` })).filter(
-      (event) => event.type !== 'ORDER_CREATED',
+      (event) => event.type !== 'ORDER_CREATED' && isStatusChange(event),
     );
 
     const currentStart = nowMs - WINDOW_DAYS * DAY_MS;

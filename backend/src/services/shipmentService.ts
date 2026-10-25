@@ -7,6 +7,7 @@ import {
   demoShipment,
   invalidStatusTransition,
   notShipped,
+  orderNotPaid,
   providerRejected,
   providerUnavailable,
   shipmentInProgress,
@@ -100,6 +101,8 @@ export class ShipmentService {
     // Domain guard: a tracking number means a courier already has this parcel.
     if (order.trackingNumber) throw alreadyShipped(order.orderNumber, order.trackingNumber);
     if (!canTransition(order.status, 'PROCESSING')) throw invalidStatusTransition(order.status, 'PROCESSING');
+    // A parcel leaves only once the money is in. The courier is never called for an unpaid order.
+    if (order.paymentStatus !== 'PAID') throw orderNotPaid(order.orderNumber, order.paymentStatus);
 
     const input = shipmentInputFor(order, service);
     // The courier's published limits are checked first: if the parcel can't fit, the courier is never called

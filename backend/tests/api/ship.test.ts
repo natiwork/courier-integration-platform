@@ -17,6 +17,7 @@ const berlinOrder = {
   destinationCity: 'Berlin',
   postalCode: '10115',
   destinationCountry: 'DE',
+  paymentStatus: 'PAID', // only paid orders ship
 };
 
 function setup() {

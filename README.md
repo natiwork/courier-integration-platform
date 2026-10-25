@@ -15,6 +15,7 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - `GET /api/orders/:id/events` returns the order's history, oldest first.
   - `POST /api/orders/:id/ship` with `{ "providerId", "service" }` hands the order to a courier (see [Shipping](#shipping)).
   - `GET /api/orders/:id/tracking` asks the courier for its current status. This is read-only and never changes the order.
+  - `POST /api/orders/:id/mark-paid` records the payment of an unpaid order (`UNPAID → PAID`, with a `PAYMENT_RECORDED` event). Only paid orders can be shipped.
 - **Order history:** every status change writes an `OrderEvent` (type, from, to, source, message, courier code, time) in the service layer, whichever way the change arrives. See [docs/state-machine.md](docs/state-machine.md#order-events).
 - Orders have line items, a total that the server computes (integer cents, currency EUR), a payment status (`PAID`, `UNPAID`, `REFUNDED`) and a destination country (ISO code, European countries).
 - `GET /api/stats/overview` returns the dashboard numbers, computed from the orders (see [definitions](#dashboard-numbers)).
@@ -98,7 +99,7 @@ How it works:
 
 `POST /api/orders/:id/ship` with `{ "providerId": "nordcargo", "service": "standard" }`:
 
-1. The order must be `PENDING`, or `FAILED` without a tracking number (a retry).
+1. The order must be `PENDING`, or `FAILED` without a tracking number (a retry), and **paid**.
 2. The courier's published limits (country, weight) are checked first. If the parcel doesn't fit, the courier is never called.
 3. The order moves to `PROCESSING`, and the courier is called.
 4. Accepted: `SHIPPED`, with the courier's tracking number and provider id. Refused or unavailable: `FAILED`, with the courier's code and message in the history.
@@ -110,6 +111,7 @@ How it works:
 | 404 | `ORDER_NOT_FOUND` | No such order. |
 | 409 | `ALREADY_SHIPPED` | The order has a tracking number. Nothing is sent again. |
 | 409 | `INVALID_STATUS_TRANSITION` | The status can't move to `PROCESSING` (e.g. delivered, cancelled). |
+| 409 | `ORDER_NOT_PAID` | The order is unpaid or refunded. Record the payment first (`mark-paid`). |
 | 409 | `SHIPMENT_IN_PROGRESS` | Another ship request for this order is still waiting for the courier. |
 | 422 | `COURIER_CANNOT_TAKE_ORDER` | Outside the courier's countries or weight limit. Checked before calling it; the order is unchanged. |
 | 422 | `PROVIDER_REJECTED` | The courier refused (e.g. NordCargo without a house number). The order is now `FAILED`. |
