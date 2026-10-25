@@ -175,3 +175,47 @@ GET {{baseUrl}}/api/meta/order-form
 ### Courier providers: capabilities and a simulated health check (200)
 # Both couriers are fictional mocks; "simulated": true means no external service was contacted.
 GET {{baseUrl}}/api/couriers
+
+### Ship the order created above with SwiftParcel (200: SHIPPED + tracking number)
+POST {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/ship
+Content-Type: application/json
+
+{ "providerId": "swiftparcel", "service": "express" }
+
+### Ship it again (409 ALREADY_SHIPPED)
+POST {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/ship
+Content-Type: application/json
+
+{ "providerId": "swiftparcel", "service": "express" }
+
+### The order's history: created, processing, shipped (200)
+GET {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/events
+
+### Unknown courier or service (400 VALIDATION_ERROR)
+POST {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/ship
+Content-Type: application/json
+
+{ "providerId": "parcelpigeon", "service": "overnight" }
+
+### An order NordCargo will refuse: no house number in the street (create it first)
+# @name noHouseNumber
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "Elin Andersson",
+  "customerEmail": "elin.andersson@example.com",
+  "deliveryAddress": "Götgatan",
+  "destinationCity": "Stockholm",
+  "postalCode": "118 46",
+  "destinationCountry": "SE",
+  "parcelWeightKg": 1.5,
+  "items": [{ "sku": "MUG-STONE-02", "name": "Stoneware mug", "quantity": 1, "unitPriceCents": 1890 }]
+}
+
+### NordCargo rejects it (422 PROVIDER_REJECTED, the order becomes FAILED)
+# NordCargo is also unavailable in about 20% of calls: then the answer is 502 PROVIDER_UNAVAILABLE.
+POST {{baseUrl}}/api/orders/{{noHouseNumber.response.body.data.id}}/ship
+Content-Type: application/json
+
+{ "providerId": "nordcargo", "service": "standard" }

@@ -14,6 +14,7 @@ import { createOrderRouter } from './routes/orderRoutes.js';
 import { createStatsRouter } from './routes/statsRoutes.js';
 import { CourierService } from './services/courierService.js';
 import { OrderService } from './services/orderService.js';
+import { ShipmentService } from './services/shipmentService.js';
 import { StatsService } from './services/statsService.js';
 
 // Default for tests: fixed seed and no waiting, so every run gives the same answers instantly.
@@ -42,6 +43,7 @@ export function createApp(options: AppOptions = {}): Express {
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
+  const shipmentService = new ShipmentService(orderService, providerRegistry);
 
   const app = express();
   app.disable('x-powered-by');
@@ -58,7 +60,7 @@ export function createApp(options: AppOptions = {}): Express {
     });
   });
 
-  app.use('/api/orders', createOrderRouter(orderService));
+  app.use('/api/orders', createOrderRouter(orderService, shipmentService, providerRegistry));
   app.use('/api/stats', createStatsRouter(statsService));
   app.use('/api/meta', createMetaRouter());
   app.use('/api/couriers', createCourierRouter(courierService));

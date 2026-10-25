@@ -1,10 +1,12 @@
 import type { RequestHandler } from 'express';
 import type { OrderService } from '../services/orderService.js';
+import type { ShipmentService } from '../services/shipmentService.js';
 import type { CreateOrderInput, ListOrdersQuery } from '../validation/orderSchemas.js';
+import type { ShipOrderInput } from '../validation/shipmentSchemas.js';
 
 // HTTP layer only: read the request, call the service, choose the status code.
 // Errors are simply thrown; Express 5 forwards rejected promises to errorHandler.
-export function createOrderController(orderService: OrderService) {
+export function createOrderController(orderService: OrderService, shipmentService: ShipmentService) {
   const list: RequestHandler = async (_req, res) => {
     // Parsed and checked by validateQuery(ListOrdersQuerySchema).
     const orders = await orderService.listOrders(res.locals.query as ListOrdersQuery);
@@ -27,5 +29,11 @@ export function createOrderController(orderService: OrderService) {
     res.status(200).json({ data: history });
   };
 
-  return { list, getById, create, events };
+  const ship: RequestHandler<{ id: string }> = async (req, res) => {
+    // On 422/502 the error handler answers, but the order has already moved to FAILED: clients reload it.
+    const order = await shipmentService.ship(req.params.id, req.body as ShipOrderInput);
+    res.status(200).json({ data: order });
+  };
+
+  return { list, getById, create, events, ship };
 }

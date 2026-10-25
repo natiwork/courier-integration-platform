@@ -13,8 +13,8 @@ import {
   type ShipmentInput,
   type ShipmentStatusReport,
 } from './courierProvider.js';
+import { checkCapabilities } from './capabilities.js';
 import {
-  checkCapabilities,
   latencyBetween,
   MockShipmentStore,
   simulatedHealthCheck,

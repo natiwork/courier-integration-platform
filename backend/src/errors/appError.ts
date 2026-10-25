@@ -30,3 +30,36 @@ export function invalidStatusTransition(from: OrderStatus, to: OrderStatus): App
     [{ from, to, allowed: ALLOWED_TRANSITIONS[from] }],
   );
 }
+
+// Shipping errors. 409 = the order's state doesn't allow it; 422 = the request is valid
+// but the courier can't or won't take this parcel; 502 = the courier failed to answer properly.
+export function alreadyShipped(orderNumber: string, trackingNumber: string): AppError {
+  return new AppError('ALREADY_SHIPPED', `Order ${orderNumber} was already shipped (tracking number ${trackingNumber})`, 409);
+}
+
+export function shipmentInProgress(orderNumber: string): AppError {
+  return new AppError('SHIPMENT_IN_PROGRESS', `Order ${orderNumber} is already being shipped`, 409);
+}
+
+export interface ProviderErrorDetail {
+  providerId: string;
+  code: string;
+  message: string;
+}
+
+export function courierCannotTakeOrder(providerName: string, detail: ProviderErrorDetail): AppError {
+  return new AppError('COURIER_CANNOT_TAKE_ORDER', `${providerName} can't take this order: ${detail.message}`, 422, [detail]);
+}
+
+export function providerRejected(providerName: string, detail: ProviderErrorDetail): AppError {
+  return new AppError('PROVIDER_REJECTED', `${providerName} rejected the request: ${detail.message}`, 422, [detail]);
+}
+
+export function providerUnavailable(providerName: string, detail: ProviderErrorDetail, consequence = ''): AppError {
+  return new AppError(
+    'PROVIDER_UNAVAILABLE',
+    `${providerName} is temporarily unavailable.${consequence ? ` ${consequence}` : ''}`,
+    502,
+    [detail],
+  );
+}

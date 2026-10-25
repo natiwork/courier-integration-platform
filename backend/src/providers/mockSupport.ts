@@ -3,10 +3,8 @@ import {
   permanentError,
   success,
   type CreatedShipment,
-  type ProviderCapabilities,
   type ProviderHealth,
   type ProviderResult,
-  type ShipmentInput,
   type ShipmentStatusReport,
 } from './courierProvider.js';
 
@@ -36,27 +34,6 @@ export interface TimelineStep<Code extends string> {
 }
 
 const HOUR_MS = 60 * 60 * 1000;
-
-// The checks every provider makes against its own capabilities before accepting a parcel.
-export function checkCapabilities(
-  providerName: string,
-  capabilities: ProviderCapabilities,
-  input: ShipmentInput,
-): ProviderResult<never> | null {
-  if (!capabilities.supportedCountries.includes(input.address.country)) {
-    return permanentError('UNSUPPORTED_DESTINATION', `${providerName} does not deliver to ${input.address.country}`);
-  }
-  if (input.parcelWeightKg > capabilities.maxParcelWeightKg) {
-    return permanentError(
-      'WEIGHT_LIMIT_EXCEEDED',
-      `${providerName} accepts parcels up to ${capabilities.maxParcelWeightKg} kg`,
-    );
-  }
-  if (!capabilities.services.some((service) => service.id === input.service)) {
-    return permanentError('UNSUPPORTED_SERVICE', `${providerName} has no "${input.service}" service`);
-  }
-  return null;
-}
 
 interface StoredShipment {
   createdAt: number; // epoch ms
