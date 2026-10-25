@@ -92,7 +92,7 @@ All day and month boundaries are in **UTC**.
 | Return rate | Returned ÷ (delivered + returned), over all orders. |
 | Delivery performance | Delivered ÷ (delivered + failed + returned), over all orders. |
 | Needs attention | Failed deliveries, returns whose refund is still pending, and orders unpaid for more than 3 days (cancelled orders excluded). |
-| Updated today | Orders whose status changed today, by their current status. A full event history is not recorded yet. |
+| Updated today | Status changes recorded today in the order history, by the new status. An order that moved twice today counts in both rows. New orders are counted separately as "created today". |
 
 ## Run it
 

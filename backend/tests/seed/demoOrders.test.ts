@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { computeTotalCents } from '../../src/domain/money.js';
 import { canTransition, ORDER_STATUSES } from '../../src/domain/orderStatus.js';
 import { createProviderRegistry } from '../../src/providers/index.js';
+import { InMemoryOrderEventRepository } from '../../src/repositories/inMemoryOrderEventRepository.js';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
 import { generateDemoEvents, generateDemoOrders } from '../../src/seed/demoOrders.js';
 import { StatsService } from '../../src/services/statsService.js';
@@ -100,9 +101,13 @@ describe('generateDemoOrders', () => {
 
     const repository = new InMemoryOrderRepository();
     for (const order of orders) await repository.create(order);
-    const stats = await new StatsService(repository, { now: () => NOW }).getOverview();
+    const events = new InMemoryOrderEventRepository();
+    for (const event of generateDemoEvents(orders)) await events.append(event);
+    const stats = await new StatsService(repository, events, { now: () => NOW }).getOverview();
 
     expect(stats.today.orders).toBeGreaterThan(0);
+    // The pipeline orders moved today, so "Updated today" has real changes to show.
+    expect(Object.values(stats.today.activity).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
     // A realistic to-do list, not hundreds of items.
     expect(stats.needsAttention.total).toBeGreaterThanOrEqual(10);
     expect(stats.needsAttention.total).toBeLessThanOrEqual(20);

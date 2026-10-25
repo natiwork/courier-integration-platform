@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Order } from '../../src/domain/order.js';
+import type { OrderEvent } from '../../src/domain/orderEvent.js';
+import { InMemoryOrderEventRepository } from '../../src/repositories/inMemoryOrderEventRepository.js';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
 import { StatsService } from '../../src/services/statsService.js';
 import { buildOrder } from '../fixtures/orders.js';
@@ -12,12 +14,31 @@ function daysAgo(days: number, extraMs = 0): string {
   return new Date(Date.parse(NOW) - days * DAY - extraMs).toISOString();
 }
 
-async function statsFor(orders: Order[], now = NOW) {
+async function statsFor(orders: Order[], now = NOW, history: OrderEvent[] = []) {
   const repository = new InMemoryOrderRepository();
   for (const { orderNumber: _ignored, ...order } of orders) {
     await repository.create(order);
   }
-  return new StatsService(repository, { now: () => new Date(now), demoData: true }).getOverview();
+  const events = new InMemoryOrderEventRepository();
+  for (const event of history) await events.append(event);
+  return new StatsService(repository, events, { now: () => new Date(now), demoData: true }).getOverview();
+}
+
+let eventCounter = 0;
+function event(toStatus: OrderEvent['toStatus'], createdAt: string, type: OrderEvent['type'] = 'STATUS_CHANGED'): OrderEvent {
+  eventCounter += 1;
+  return {
+    id: `event-${eventCounter}`,
+    orderId: 'order-x',
+    type,
+    fromStatus: null,
+    toStatus,
+    source: 'api',
+    message: 'test',
+    providerId: null,
+    code: null,
+    createdAt,
+  };
 }
 
 describe('StatsService.getOverview', () => {
@@ -48,19 +69,36 @@ describe('StatsService.getOverview', () => {
     expect(stats.totals.byStatus).toMatchObject({ PENDING: 2, DELIVERED: 1, RETURNED: 1, FAILED: 0 });
   });
 
-  it("counts today's orders, today's paid revenue and today's status updates (UTC)", async () => {
+  it("counts today's orders and today's paid revenue (UTC)", async () => {
     const stats = await statsFor([
       buildOrder({ createdAt: '2026-10-24T00:00:00.000Z', totalCents: 1500, paymentStatus: 'PAID' }),
       buildOrder({ createdAt: '2026-10-24T09:00:00.000Z', totalCents: 9900, paymentStatus: 'UNPAID' }),
       buildOrder({ createdAt: '2026-10-23T23:59:59.999Z', totalCents: 700 }),
-      buildOrder({ createdAt: daysAgo(5), updatedAt: '2026-10-24T08:00:00.000Z', status: 'SHIPPED' }),
-      buildOrder({ createdAt: daysAgo(9), updatedAt: '2026-10-24T10:00:00.000Z', status: 'DELIVERED' }),
     ]);
 
     expect(stats.today.orders).toBe(2);
     expect(stats.today.revenueCents).toBe(1500);
-    // Includes the two orders created today (their updatedAt is today too).
-    expect(stats.today.activity).toMatchObject({ PENDING: 2, SHIPPED: 1, DELIVERED: 1, PROCESSING: 0 });
+  });
+
+  it("counts today's status changes from the event history, by new status (UTC)", async () => {
+    const stats = await statsFor([], NOW, [
+      event('PENDING', '2026-10-24T08:00:00.000Z', 'ORDER_CREATED'), // a new order, not a change
+      event('PROCESSING', '2026-10-24T08:05:00.000Z'),
+      event('SHIPPED', '2026-10-24T09:00:00.000Z', 'SHIPMENT_CREATED'), // the same order moved twice today
+      event('FAILED', '2026-10-24T00:00:00.000Z', 'PROVIDER_UNAVAILABLE'), // midnight counts as today
+      event('DELIVERED', '2026-10-23T23:59:59.999Z'), // yesterday
+    ]);
+
+    expect(stats.today.activity).toEqual({
+      PENDING: 0,
+      PROCESSING: 1,
+      SHIPPED: 1,
+      IN_TRANSIT: 0,
+      DELIVERED: 0,
+      FAILED: 1,
+      CANCELLED: 0,
+      RETURNED: 0,
+    });
   });
 
   it('splits the last 30 days from the previous 30 at the exact boundary', async () => {

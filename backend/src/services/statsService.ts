@@ -1,5 +1,6 @@
 import { CURRENCY, type Order } from '../domain/order.js';
 import { ORDER_STATUSES, type OrderStatus } from '../domain/orderStatus.js';
+import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,13 +54,17 @@ interface StatsServiceOptions {
 //   average order = revenue / number of PAID orders in the same window
 //   return rate   = RETURNED / (DELIVERED + RETURNED), all orders
 //   delivery perf = DELIVERED / (DELIVERED + FAILED + RETURNED), all orders
+//   activity      = status changes recorded today, by the new status (ORDER_CREATED excluded:
+//                   new orders are counted in today.orders). An order that moved twice counts twice.
 export class StatsService {
   private readonly repository: OrderRepository;
+  private readonly events: OrderEventRepository;
   private readonly now: () => Date;
   private readonly demoData: boolean;
 
-  constructor(repository: OrderRepository, options: StatsServiceOptions = {}) {
+  constructor(repository: OrderRepository, events: OrderEventRepository, options: StatsServiceOptions = {}) {
     this.repository = repository;
+    this.events = events;
     this.now = options.now ?? (() => new Date());
     this.demoData = options.demoData ?? false;
   }
@@ -74,7 +79,9 @@ export class StatsService {
     const paid = orders.filter((order) => order.paymentStatus === 'PAID');
 
     const createdToday = orders.filter((order) => dayKey(order.createdAt) === todayKey);
-    const updatedToday = orders.filter((order) => dayKey(order.updatedAt) === todayKey);
+    const changesToday = (await this.events.findRecent({ since: `${todayKey}T00:00:00.000Z` })).filter(
+      (event) => event.type !== 'ORDER_CREATED',
+    );
 
     const currentStart = nowMs - WINDOW_DAYS * DAY_MS;
     const previousStart = nowMs - 2 * WINDOW_DAYS * DAY_MS;
@@ -96,7 +103,7 @@ export class StatsService {
         date: todayKey,
         orders: createdToday.length,
         revenueCents: sumTotals(createdToday.filter((order) => order.paymentStatus === 'PAID')),
-        activity: countByStatus(updatedToday),
+        activity: countByStatus(changesToday.map((event) => ({ status: event.toStatus }))),
       },
       last30Days: {
         orders: trend(orders.filter(inCurrent).length, orders.filter(inPrevious).length),
@@ -125,10 +132,10 @@ function inWindow(iso: string, startMs: number, endMs: number): boolean {
   return time > startMs && time <= endMs;
 }
 
-function countByStatus(orders: readonly Order[]): Record<OrderStatus, number> {
+function countByStatus(items: readonly { status: OrderStatus }[]): Record<OrderStatus, number> {
   const counts = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0])) as Record<OrderStatus, number>;
-  for (const order of orders) {
-    counts[order.status] += 1;
+  for (const item of items) {
+    counts[item.status] += 1;
   }
   return counts;
 }

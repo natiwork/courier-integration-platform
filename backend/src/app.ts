@@ -37,7 +37,7 @@ export function createApp(options: AppOptions = {}): Express {
   const orderRepository = options.orderRepository ?? new InMemoryOrderRepository();
   const orderEventRepository = options.orderEventRepository ?? new InMemoryOrderEventRepository();
   const orderService = new OrderService(orderRepository, orderEventRepository, options.now);
-  const statsService = new StatsService(orderRepository, { now: options.now, demoData: options.demoData });
+  const statsService = new StatsService(orderRepository, orderEventRepository, { now: options.now, demoData: options.demoData });
   const providerRegistry =
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
