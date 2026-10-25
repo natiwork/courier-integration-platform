@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "simulate:webhook": "tsx --env-file-if-exists=.env src/cli/simulateWebhook.ts",
     "db:migrate": "tsx --env-file-if-exists=.env src/cli/migrate.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:seed": "tsx --env-file-if-exists=.env src/cli/seed.ts"
   },
   "dependencies": {
     "express": "^5.3.0",

@@ -5,6 +5,7 @@ import { createPool, type Pool } from './db/pool.js';
 import { errorFields, configureLogger, logger } from './lib/logger.js';
 import { createProviderRegistry } from './providers/index.js';
 import { generateDemoEvents, generateDemoOrders } from './seed/demoOrders.js';
+import { seedDemoDataIfEmpty } from './seed/seedDatabase.js';
 import { OrderService } from './services/orderService.js';
 import { RecoveryService } from './services/recoveryService.js';
 import { createMemoryStorage, createPostgresStorage, type Storage } from './storage.js';
@@ -39,10 +40,15 @@ if (config.storage === 'postgres') {
 }
 logger.info('storage ready', { storage: storage.kind });
 
-// Demo orders are written straight to the repository: they need past dates and finished statuses,
+// Demo orders are written straight to the storage: they need past dates and finished statuses,
 // which the service would never create (it always starts at PENDING with the current time).
 // tests/seed/demoOrders.test.ts checks that every generated order is still valid and consistent.
-if (config.seedDemoData && storage.kind === 'memory') {
+// PostgreSQL keeps them across restarts, so they are written only into an empty database.
+if (config.seedDemoData && pool) {
+  const result = await seedDemoDataIfEmpty(pool);
+  if (result.seeded) logger.info('demo data seeded', { orders: result.orders, events: result.events, hint: 'set SEED_DEMO_DATA=false to start empty' });
+  else logger.info('demo data not seeded: the database already has orders');
+} else if (config.seedDemoData) {
   const demoOrders = generateDemoOrders(new Date());
   for (const order of demoOrders) {
     await storage.orderRepository.create(order);
