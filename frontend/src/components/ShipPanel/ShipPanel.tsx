@@ -158,6 +158,8 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
                     setChosenCourierId(option.id);
                     setChosenServiceId(null);
                   }}
+                  // The label also contains the limits; the name should be just the courier, the rest is the description.
+                  aria-label={option.name}
                   aria-describedby={infoId}
                 />
                 <span className={styles.courierName}>
