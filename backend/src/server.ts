@@ -1,5 +1,6 @@
 import { createApp } from './app.js';
 import { loadConfig, type AppConfig } from './config/env.js';
+import { createProviderRegistry } from './providers/index.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
 import { generateDemoOrders } from './seed/demoOrders.js';
 
@@ -24,6 +25,11 @@ if (config.seedDemoData) {
   console.log(`Seeded ${demoOrders.length} demo orders (set SEED_DEMO_DATA=false to start empty)`);
 }
 
-createApp({ orderRepository, demoData: config.seedDemoData }).listen(config.port, () => {
+// The mock couriers wait like real network calls here. Log the seed so a run can be repeated.
+const providerSeed = config.mockProviderSeed ?? Date.now() % 2 ** 31;
+const providerRegistry = createProviderRegistry({ seed: providerSeed, simulateLatency: true });
+console.log(`Mock courier providers use seed ${providerSeed} (set MOCK_PROVIDER_SEED to repeat a run)`);
+
+createApp({ orderRepository, providerRegistry, demoData: config.seedDemoData }).listen(config.port, () => {
   console.log(`Server listening on http://localhost:${config.port}`);
 });

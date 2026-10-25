@@ -5,12 +5,19 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   // "true" / "false"; when not set, demo data is on everywhere except production.
   SEED_DEMO_DATA: z.enum(['true', 'false'], 'SEED_DEMO_DATA must be "true" or "false"').optional(),
+  // Fixes the "random" behaviour of the mock couriers (delays, NordCargo outages). Unset = new every start.
+  MOCK_PROVIDER_SEED: z
+    .string()
+    .regex(/^\d{1,9}$/, 'MOCK_PROVIDER_SEED must be a whole number (up to 9 digits)')
+    .transform(Number)
+    .optional(),
 });
 
 export interface AppConfig {
   nodeEnv: 'development' | 'test' | 'production';
   port: number;
   seedDemoData: boolean;
+  mockProviderSeed: number | undefined;
 }
 
 // Reads and checks environment variables once at startup. A bad value stops the server with a clear message.
@@ -20,10 +27,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
     throw new Error(`Invalid environment variables:\n${problems}`);
   }
-  const { NODE_ENV, PORT, SEED_DEMO_DATA } = result.data;
+  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED } = result.data;
   return {
     nodeEnv: NODE_ENV,
     port: PORT,
     seedDemoData: SEED_DEMO_DATA === undefined ? NODE_ENV !== 'production' : SEED_DEMO_DATA === 'true',
+    mockProviderSeed: MOCK_PROVIDER_SEED,
   };
 }

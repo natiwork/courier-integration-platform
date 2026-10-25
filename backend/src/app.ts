@@ -2,17 +2,26 @@ import express, { type Express } from 'express';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
+import { createProviderRegistry } from './providers/index.js';
+import type { ProviderRegistry } from './providers/providerRegistry.js';
 import type { OrderRepository } from './repositories/orderRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
+import { createCourierRouter } from './routes/courierRoutes.js';
 import { createMetaRouter } from './routes/metaRoutes.js';
 import { createOrderRouter } from './routes/orderRoutes.js';
 import { createStatsRouter } from './routes/statsRoutes.js';
+import { CourierService } from './services/courierService.js';
 import { OrderService } from './services/orderService.js';
 import { StatsService } from './services/statsService.js';
+
+// Default for tests: fixed seed and no waiting, so every run gives the same answers instantly.
+const TEST_PROVIDER_SEED = 1;
 
 export interface AppOptions {
   // Defaults to a fresh in-memory store, so every createApp() call starts empty.
   orderRepository?: OrderRepository;
+  // Defaults to the mock providers with a fixed seed and no simulated latency.
+  providerRegistry?: ProviderRegistry;
   // True when the store was filled by the demo seed; reported by /api/stats/overview.
   demoData?: boolean;
   // Injectable clock for tests.
@@ -24,6 +33,10 @@ export function createApp(options: AppOptions = {}): Express {
   const orderRepository = options.orderRepository ?? new InMemoryOrderRepository();
   const orderService = new OrderService(orderRepository, options.now);
   const statsService = new StatsService(orderRepository, { now: options.now, demoData: options.demoData });
+  const providerRegistry =
+    options.providerRegistry ??
+    createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
+  const courierService = new CourierService(providerRegistry);
 
   const app = express();
   app.disable('x-powered-by');
@@ -43,6 +56,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/orders', createOrderRouter(orderService));
   app.use('/api/stats', createStatsRouter(statsService));
   app.use('/api/meta', createMetaRouter());
+  app.use('/api/couriers', createCourierRouter(courierService));
 
   // Must come after all routes.
   app.use(notFound);

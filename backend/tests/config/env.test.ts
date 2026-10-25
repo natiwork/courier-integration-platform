@@ -3,7 +3,16 @@ import { loadConfig } from '../../src/config/env.js';
 
 describe('loadConfig', () => {
   it('uses defaults: port 3000 and demo data on outside production', () => {
-    expect(loadConfig({})).toEqual({ nodeEnv: 'development', port: 3000, seedDemoData: true });
+    expect(loadConfig({})).toEqual({
+      nodeEnv: 'development',
+      port: 3000,
+      seedDemoData: true,
+      mockProviderSeed: undefined,
+    });
+  });
+
+  it('reads MOCK_PROVIDER_SEED as a number', () => {
+    expect(loadConfig({ MOCK_PROVIDER_SEED: '42' }).mockProviderSeed).toBe(42);
   });
 
   it('turns demo data off by default in production', () => {
@@ -23,6 +32,9 @@ describe('loadConfig', () => {
     [{ SEED_DEMO_DATA: 'yes' }, 'SEED_DEMO_DATA'],
     [{ PORT: 'abc' }, 'PORT'],
     [{ NODE_ENV: 'staging' }, 'NODE_ENV'],
+    [{ MOCK_PROVIDER_SEED: '' }, 'MOCK_PROVIDER_SEED'],
+    [{ MOCK_PROVIDER_SEED: '1.5' }, 'MOCK_PROVIDER_SEED'],
+    [{ MOCK_PROVIDER_SEED: '-3' }, 'MOCK_PROVIDER_SEED'],
   ])('stops with a clear message for %o', (env, name) => {
     expect(() => loadConfig(env)).toThrow(new RegExp(`Invalid environment variables:[\\s\\S]*${name}`));
   });

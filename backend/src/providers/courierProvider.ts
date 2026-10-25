@@ -70,7 +70,7 @@ export interface ProviderHealth {
   status: 'up' | 'down';
   latencyMs: number; // measured round trip of the health check
   checkedAt: string; // ISO 8601
-  simulated: boolean; // true for mock providers: no external service was contacted
+  simulated: true; // all providers are mocks: no external service is contacted
 }
 
 export interface CourierProvider {
