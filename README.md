@@ -14,6 +14,7 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - `POST /api/orders` creates an order and responds with `201` and a `Location` header.
 - Orders have line items, a total that the server computes (integer cents, currency EUR), a payment status (`PAID`, `UNPAID`, `REFUNDED`) and a destination country (ISO code, European countries).
 - `GET /api/stats/overview` returns the dashboard numbers, computed from the orders (see [definitions](#dashboard-numbers)).
+- `GET /api/meta/order-form` returns the supported countries, payment statuses and every validation limit, so the order form never hard-codes them.
 - Input validation with Zod: trimmed strings, length limits, email format, parcel weight up to 100 kg, validated items, unknown fields rejected. Clients cannot send totals or system fields.
 - An order status state machine with a single transition table, including `RETURNED` and `CANCELLED`; see [docs/state-machine.md](docs/state-machine.md). Status changes are implemented in the service layer, but there is no HTTP endpoint for them yet.
 - A unified error format with a request id, also sent in the `X-Request-Id` header:
@@ -41,10 +42,17 @@ A full-stack platform for managing e-commerce orders and courier service integra
 - **Shipment details**: items and total, customer and delivery data, a shipment timeline and a route diagram.
   - The timeline is derived from the current status. Exact times are shown only where they are known (when the order was placed and the latest change).
   - The route is a **schematic**. It is labelled as such: it is not a map and shows no live location.
-- Every widget and page has its own loading, empty and error state with retry.
+- **New shipment**: a form to create an order.
+  - Fields: customer, delivery address and country, parcel weight, payment status, and a list of items you can add to and remove from.
+  - Line totals and an estimated order total update as you type. Money is handled in integer cents; the server still computes the real total.
+  - Client-side checks use the same rules and messages as the API. Server validation errors appear next to the matching field, including item fields like `items.1.quantity`. Other errors show the request id.
+  - Accessible: labelled fields, errors linked with `aria-describedby`, and an error summary that receives focus. The form can be used with the keyboard alone and works at 375 px.
+  - Double submits are blocked, so a double click creates exactly one order.
+  - After creating, you land on the new order with a confirmation, and the dashboard numbers refresh.
+- Every widget and page has its own loading, empty and error state with retry. These were checked with the backend stopped.
 - Responsive from 375 px to wide screens: the sidebar turns into an icon rail and then a menu, and tables turn into cards.
 - Keyboard-accessible: a skip link, visible focus, focus moves to the new page heading after navigation, and the mobile menu closes with Escape.
-- Placeholder pages for New shipment, Couriers and Integrations say honestly that these features aren't built yet.
+- Placeholder pages for Couriers and Integrations say honestly that these features aren't built yet.
 
 ## Demo data
 
@@ -91,6 +99,12 @@ Example requests (valid and invalid) are in [backend/requests.http](backend/requ
 
 In development, `/styleguide` shows every component and state in both themes, using sample text. This page is not included in production builds.
 
+## Why there is no CORS setup
+
+In development the browser only talks to the Vite dev server (`localhost:5173`), and Vite forwards `/api` requests to the backend. For the browser everything has the same origin, so CORS never applies.
+
+CORS will be needed only if the frontend and the API are served from different origins in production, for example `app.example.com` and `api.example.com`. The API would then have to allow that specific origin and answer preflight `OPTIONS` requests. If both are served from one domain (a reverse proxy with `/api`), no CORS setup is needed there either.
+
 ## Check
 
 ```bash
@@ -101,5 +115,6 @@ npm test
 cd ../frontend
 npm run typecheck
 npm run lint
+npm test           # Vitest: money parsing and form validation
 npm run build
 ```
