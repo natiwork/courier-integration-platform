@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "End-to-end tests: starts the backend and the frontend and drives the UI in Chromium",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24"

@@ -30,5 +30,6 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
   },
-  "description": "Web UI for the Courier Integration Platform"
+  "description": "Web UI for the Courier Integration Platform",
+  "license": "MIT"
 }

@@ -109,3 +109,7 @@ Node.js 24, TypeScript (strict), Express 5, Zod, PostgreSQL 18 (`pg`), Vitest, S
 ## Documentation
 
 [API reference](docs/api.md) · [Storage and demo data](docs/storage.md) · [Frontend](docs/frontend.md) · [State machine](docs/state-machine.md) · [Courier providers](docs/courier-providers.md) · [Reliability](docs/reliability.md) · [Webhooks](docs/webhooks.md) · [Testing](docs/testing.md) · [Security](docs/security.md)
+
+## License
+
+[MIT](LICENSE) © 2026 Anastasia Rybalka
