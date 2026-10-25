@@ -168,3 +168,6 @@ GET {{baseUrl}}/api/orders?status=LOST
 
 ### Dashboard stats (200)
 GET {{baseUrl}}/api/stats/overview
+
+### Order form options: countries, payment statuses, limits (200)
+GET {{baseUrl}}/api/meta/order-form

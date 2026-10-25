@@ -4,6 +4,7 @@ import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
 import type { OrderRepository } from './repositories/orderRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
+import { createMetaRouter } from './routes/metaRoutes.js';
 import { createOrderRouter } from './routes/orderRoutes.js';
 import { createStatsRouter } from './routes/statsRoutes.js';
 import { OrderService } from './services/orderService.js';
@@ -41,6 +42,7 @@ export function createApp(options: AppOptions = {}): Express {
 
   app.use('/api/orders', createOrderRouter(orderService));
   app.use('/api/stats', createStatsRouter(statsService));
+  app.use('/api/meta', createMetaRouter());
 
   // Must come after all routes.
   app.use(notFound);

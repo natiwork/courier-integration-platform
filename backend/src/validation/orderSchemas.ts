@@ -3,11 +3,33 @@ import { SUPPORTED_COUNTRIES } from '../domain/countries.js';
 import { PAYMENT_STATUSES } from '../domain/order.js';
 import { ORDER_STATUSES } from '../domain/orderStatus.js';
 
-// Platform-wide limit. Courier providers may enforce stricter limits of their own (Phase 5).
-export const MAX_PARCEL_WEIGHT_KG = 100;
-export const MAX_ITEMS_PER_ORDER = 50;
-export const MAX_ITEM_QUANTITY = 999;
-export const MAX_UNIT_PRICE_CENTS = 10_000_000; // €100,000.00
+// Every number the order rules use, in one place. The schema below uses them, and
+// GET /api/meta/order-form sends them to the frontend, so the client never hard-codes them.
+export const ORDER_LIMITS = {
+  customerNameMax: 100,
+  customerEmailMax: 254,
+  deliveryAddressMax: 200,
+  destinationCityMax: 100,
+  postalCodeMin: 2,
+  postalCodeMax: 12,
+  skuMin: 3,
+  skuMax: 32,
+  itemNameMax: 120,
+  itemsMax: 50,
+  quantityMin: 1,
+  quantityMax: 999,
+  unitPriceCentsMin: 1, // €0.01
+  unitPriceCentsMax: 10_000_000, // €100,000.00
+  // Platform-wide limit. Courier providers may enforce stricter limits of their own (Phase 5).
+  parcelWeightKgMax: 100,
+} as const;
+
+export const MAX_PARCEL_WEIGHT_KG = ORDER_LIMITS.parcelWeightKgMax;
+export const MAX_ITEMS_PER_ORDER = ORDER_LIMITS.itemsMax;
+export const MAX_ITEM_QUANTITY = ORDER_LIMITS.quantityMax;
+export const MAX_UNIT_PRICE_CENTS = ORDER_LIMITS.unitPriceCentsMax;
+
+const L = ORDER_LIMITS;
 
 // A trimmed, non-empty string with a length limit and readable error messages.
 function requiredString(label: string, max: number) {
@@ -31,25 +53,34 @@ function boundedInteger(label: string, min: number, max: number) {
     .max(max, `${label} must be at most ${max}`);
 }
 
+// Prices travel as integer cents, but people think in euros, so the message speaks euros.
+const UNIT_PRICE_RANGE = 'Unit price must be between €0.01 and €100,000.00';
+
 const OrderItemSchema = z.strictObject({
-  sku: requiredString('SKU', 32)
+  sku: requiredString('SKU', L.skuMax)
     .toUpperCase()
-    .regex(/^[A-Z0-9-]{3,32}$/, 'SKU must be 3–32 letters, digits or hyphens'),
-  name: requiredString('Item name', 120),
-  quantity: boundedInteger('Quantity', 1, MAX_ITEM_QUANTITY),
-  unitPriceCents: boundedInteger('Unit price', 1, MAX_UNIT_PRICE_CENTS),
+    .regex(new RegExp(`^[A-Z0-9-]{${L.skuMin},${L.skuMax}}$`), `SKU must be ${L.skuMin}–${L.skuMax} letters, digits or hyphens`),
+  name: requiredString('Item name', L.itemNameMax),
+  quantity: boundedInteger('Quantity', L.quantityMin, L.quantityMax),
+  unitPriceCents: z
+    .number({
+      error: (issue) => (issue.input === undefined ? 'Unit price is required' : 'Unit price must be a number'),
+    })
+    .int('Unit price must be a whole number of cents')
+    .min(L.unitPriceCentsMin, UNIT_PRICE_RANGE)
+    .max(L.unitPriceCentsMax, UNIT_PRICE_RANGE),
 });
 
 export const CreateOrderSchema = z.strictObject({
-  customerName: requiredString('Customer name', 100),
+  customerName: requiredString('Customer name', L.customerNameMax),
   // trim + lowercase run first, then the email format is checked on the cleaned value.
-  customerEmail: requiredString('Customer email', 254)
+  customerEmail: requiredString('Customer email', L.customerEmailMax)
     .toLowerCase()
     .pipe(z.email('Customer email must be a valid email address')),
-  deliveryAddress: requiredString('Delivery address', 200),
-  destinationCity: requiredString('Destination city', 100),
-  postalCode: requiredString('Postal code', 12)
-    .min(2, 'Postal code must be at least 2 characters')
+  deliveryAddress: requiredString('Delivery address', L.deliveryAddressMax),
+  destinationCity: requiredString('Destination city', L.destinationCityMax),
+  postalCode: requiredString('Postal code', L.postalCodeMax)
+    .min(L.postalCodeMin, `Postal code must be at least ${L.postalCodeMin} characters`)
     .regex(/^[A-Za-z0-9 -]+$/, 'Postal code may contain only letters, digits, spaces and hyphens'),
   destinationCountry: requiredString('Destination country', 2)
     .toUpperCase()
