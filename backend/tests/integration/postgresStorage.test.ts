@@ -6,6 +6,9 @@ import { ORDER_EVENT_TYPES } from '../../src/domain/orderEvent.js';
 import { ORDER_STATUSES } from '../../src/domain/orderStatus.js';
 import { createPool } from '../../src/db/pool.js';
 import type { OrderEvent } from '../../src/domain/orderEvent.js';
+import { ProviderRegistry } from '../../src/providers/providerRegistry.js';
+import { OrderService } from '../../src/services/orderService.js';
+import { RecoveryService } from '../../src/services/recoveryService.js';
 import { createPostgresStorage } from '../../src/storage.js';
 import { buildOrder } from '../fixtures/orders.js';
 import { createPostgresApp, paidOrderBody } from './support/app.js';
@@ -112,5 +115,22 @@ describe('PostgreSQL storage', () => {
     } finally {
       await unreachable.end();
     }
+  });
+
+  it('recovers an interrupted shipment in one transaction and leaves orders being prepared alone', async () => {
+    const storage = createPostgresStorage(pool);
+    const { orderNumber: _a, ...stuck } = buildOrder({ id: randomUUID(), status: 'PROCESSING', shippingStartedAt: '2026-10-25T11:00:00.000Z', shippingProviderId: 'nordcargo' });
+    const { orderNumber: _b, ...prepared } = buildOrder({ id: randomUUID(), status: 'PROCESSING', updatedAt: '2026-01-01T00:00:00.000Z' });
+    await storage.orderRepository.create(stuck);
+    await storage.orderRepository.create(prepared);
+    const orders = new OrderService(storage.orderRepository, storage.orderEventRepository, () => new Date('2026-10-25T12:00:00.000Z'), storage.runInTransaction);
+    const recovery = new RecoveryService(orders, new ProviderRegistry(), { now: () => new Date('2026-10-25T12:00:00.000Z') });
+
+    expect((await recovery.recoverInterruptedShipments()).map((order) => order.id)).toEqual([stuck.id]);
+    expect(await storage.orderRepository.findById(stuck.id)).toMatchObject({ status: 'FAILED', shippingStartedAt: null });
+    expect(await storage.orderEventRepository.findByOrderId(stuck.id)).toEqual([
+      expect.objectContaining({ toStatus: 'FAILED', source: 'system', code: 'SHIPMENT_INTERRUPTED', providerId: 'nordcargo' }),
+    ]);
+    expect((await storage.orderRepository.findById(prepared.id))?.status).toBe('PROCESSING');
   });
 });
