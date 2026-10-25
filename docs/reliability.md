@@ -26,7 +26,7 @@ Why not retry forever: a courier that is down would get more and more requests, 
 
 Each attempt is logged. The final event stores `attempts`, so the Integrations page can show "Accepted on attempt 3" or "Unavailable after 3 attempts". The retries are not status changes: the history shows `PROCESSING` once, then `SHIPPED` or `FAILED`.
 
-**Interaction with the lock.** `ShipmentService` keeps a per-order in-flight lock for the whole request, including the waits between attempts:
+**Interaction with the lock.** The order's shipping lock (`shippingStartedAt`, see [state-machine.md](state-machine.md#status-vs-shipping-lock)) is held for the whole request, including the waits between attempts. It lives in the order row, so it also works across several server processes:
 - a second ship request *without* an idempotency key gets `409 SHIPMENT_IN_PROGRESS`;
 - *with the same key*, it waits for the first one and receives its answer.
 
@@ -50,7 +50,11 @@ Details:
 
 The frontend creates one key (`crypto.randomUUID()`) per user action: submitting the order form, confirming a shipment. It reuses the key only when the same action is sent again after a network error, because then the server may have done the work without the answer arriving (`lib/actionKey.ts`). Any real answer, success or error, ends the action.
 
-Keys live in memory. With PostgreSQL (Phase 9) they move to a table with a unique key column, and `INSERT … ON CONFLICT` claims a key atomically, like `begin()` does now.
+With `STORAGE=postgres` the keys live in the `idempotency_keys` table, with the same rules ([`idempotencyStore.contract.ts`](../backend/tests/contracts/idempotencyStore.contract.ts) runs against both stores):
+- **Claim:** `INSERT … ON CONFLICT (key) DO NOTHING`. The primary key decides which of two requests owns a key, even in two server processes.
+- **Wait:** a request in another process can't wake the waiting one, so it reads the row again every 100 ms until the answer is stored.
+- **Lease:** a key in flight carries `locked_until` (5 minutes, longer than the slowest real request). If its process died, a retry takes the key over after that instead of waiting forever.
+- **Cleanup:** keys older than 24 hours and expired leases are deleted every minute. Webhook event ids work the same way (`webhook_events`, primary key `(provider_id, event_id)`, 7 days, 1-minute lease).
 
 ## Structured logs
 
@@ -69,14 +73,17 @@ To trace a request, take the `requestId` from the response or the error message 
 grep '"requestId":"<id>"' backend.log
 ```
 
-## Known limitation: a crash during `PROCESSING`
+## A crash while waiting for the courier
 
-The order moves to `PROCESSING` before the courier is called. With the timeout, the call can no longer hang forever: it always ends in `SHIPPED` or `FAILED` within about `3 × timeout + backoff`.
+The order takes its shipping lock before the courier is called. With the timeout, the call can't hang forever: it ends in `SHIPPED` or `FAILED` within about `3 × timeout + backoff`.
 
-One case remains. If the **process dies** between `PROCESSING` and the courier's answer (deploy, crash, power loss), the order stays in `PROCESSING`, and no code is left to finish the job. Whether the courier created the shipment is unknown.
+If the **process dies** in between (deploy, crash, power loss), the lock stays in the database and nobody finishes the job. Whether the courier created the shipment is unknown.
 
-Phase 9 (PostgreSQL) can solve this in one of two ways:
-- **Transactional outbox:** the status change and a "ship this order" task are written in one transaction. A worker picks up unfinished tasks, including after a restart, and completes them. A provider idempotency key makes the repeat safe.
-- **Recovery job:** a periodic job finds orders in `PROCESSING` older than a few minutes, asks the courier whether a shipment exists for them, and records `SHIPPED` or `FAILED` with an event.
+**What we do: a recovery job** ([`recoveryService.ts`](../backend/src/services/recoveryService.ts)). At startup and every minute it finds orders whose `shipping_started_at` is older than **5 minutes** (longer than any real request: 3 × the maximum 60 s timeout plus backoff) and closes them: `PROCESSING → FAILED`, lock cleared, with a `STATUS_CHANGED` event from `system`, code `SHIPMENT_INTERRUPTED`: "Recovered after interruption: the request to SwiftParcel never finished, so no courier answer was recorded. Check with the courier before trying again."
+- It looks only at the lock, never at the status alone: `PROCESSING` also means "being prepared", and those orders are left alone.
+- The update is conditional on the same `shipping_started_at`, so if the request finishes at that very moment, exactly one of them wins. A late courier answer after recovery doesn't overwrite the history (`409 SHIPMENT_INTERRUPTED`).
+- Several server processes can run it at the same time.
 
-Until then, an order stuck this way needs manual attention. The in-memory data is lost on restart anyway.
+This is the smallest honest answer: the order says what happened and asks a person to check. It doesn't find out whether the parcel exists.
+
+**The bigger alternative: a transactional outbox.** The lock and a "ship this order" task are written in one transaction. A worker picks up unfinished tasks, including after a restart, asks the courier whether a shipment for this order already exists (or sends the same provider idempotency key again), and completes the job automatically. It needs a task table, a worker loop and couriers that support idempotency keys or lookups by our order id. Our mock couriers don't, so this was left out.

@@ -69,7 +69,7 @@ Couriers deliver "at least once": after a timeout or an error they send the same
 - the claim is **released** when we expect a retry (unknown tracking number, our own 5xx). Otherwise the retry would be dropped as a duplicate, and the update lost. A test covers this: 404, then the tracking number appears, then the retry of the same event is applied;
 - a parallel copy waits for the first attempt, so it is either a duplicate or gets its own turn.
 
-Event ids are remembered for 7 days, longer than couriers keep retrying. In memory for now; Phase 9 moves them to a table with a unique key.
+Event ids are remembered for 7 days, longer than couriers keep retrying. With `STORAGE=postgres` they are rows in `webhook_events` with the primary key `(provider_id, event_id)`: of two copies arriving at two server processes, only one `INSERT` succeeds.
 
 ## Logs and the Integrations page
 
@@ -115,5 +115,6 @@ Change one character of `$BODY` after computing `$SIG`, and the answer becomes `
 
 - The webhooks come from our simulator, not from real couriers.
 - The simulator doesn't move the mock courier's own timeline. "Ask the courier" (read-only, `getShipmentStatus`) can therefore report something different from the last webhook: they are two independent sources.
-- Deduplication, the webhook log and the event ids live in memory and are lost on restart (PostgreSQL in Phase 9).
+- With in-memory storage, deduplication and the webhook log are lost on restart (with PostgreSQL they are kept).
+- Handling one webhook is several writes, not one transaction: the status change with its event, the receipt in the log, the dedupe record. A failure in between can leave a receipt missing; the courier's retry is then handled normally.
 - If our server is down, the courier's retries are what deliver the update later. Every courier retries for a limited time, so a long outage can lose updates. The fix would be polling `getShipmentStatus` to catch up after downtime (reconciliation).
