@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { LOG_LEVELS, type LogLevel } from '../lib/logger.js';
 
+function webhookSecret(name: string) {
+  return z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(32, `${name} must be at least 32 characters`).optional(),
+  );
+}
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -15,6 +22,10 @@ const EnvSchema = z.object({
     .default(2000),
   // debug | info | warn | error | silent. Default: info (silent under NODE_ENV=test).
   LOG_LEVEL: z.enum(LOG_LEVELS, `LOG_LEVEL must be one of: ${LOG_LEVELS.join(', ')}`).optional(),
+  // Shared secrets for courier webhook signatures (at least 32 characters; `openssl rand -hex 32`).
+  // Empty or missing: that courier's webhook endpoint answers 503 WEBHOOK_NOT_CONFIGURED.
+  WEBHOOK_SECRET_SWIFTPARCEL: webhookSecret('WEBHOOK_SECRET_SWIFTPARCEL'),
+  WEBHOOK_SECRET_NORDCARGO: webhookSecret('WEBHOOK_SECRET_NORDCARGO'),
   // Fixes the "random" behaviour of the mock couriers (delays, NordCargo outages). Unset = new every start.
   MOCK_PROVIDER_SEED: z
     .string()
@@ -30,6 +41,7 @@ export interface AppConfig {
   mockProviderSeed: number | undefined;
   providerTimeoutMs: number;
   logLevel: LogLevel;
+  webhookSecrets: Record<string, string | undefined>; // by provider id
 }
 
 // Reads and checks environment variables once at startup. A bad value stops the server with a clear message.
@@ -39,7 +51,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
     throw new Error(`Invalid environment variables:\n${problems}`);
   }
-  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED, PROVIDER_TIMEOUT_MS, LOG_LEVEL } = result.data;
+  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED, PROVIDER_TIMEOUT_MS, LOG_LEVEL, WEBHOOK_SECRET_SWIFTPARCEL, WEBHOOK_SECRET_NORDCARGO } =
+    result.data;
   return {
     nodeEnv: NODE_ENV,
     port: PORT,
@@ -47,5 +60,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     mockProviderSeed: MOCK_PROVIDER_SEED,
     providerTimeoutMs: PROVIDER_TIMEOUT_MS,
     logLevel: LOG_LEVEL ?? (NODE_ENV === 'test' ? 'silent' : 'info'),
+    webhookSecrets: { swiftparcel: WEBHOOK_SECRET_SWIFTPARCEL, nordcargo: WEBHOOK_SECRET_NORDCARGO },
   };
 }

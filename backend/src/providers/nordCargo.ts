@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { CountryCode } from '../domain/countries.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import {
@@ -24,6 +25,7 @@ import {
   type MockProviderOptions,
   type TimelineStep,
 } from './mockSupport.js';
+import { parseWith, type WebhookSpec } from './webhooks.js';
 
 // NordCargo: a FICTIONAL courier (mock). Slower, sometimes temporarily unavailable,
 // stricter about addresses and weight, and limited to Northern and Central Europe.
@@ -50,6 +52,35 @@ export function mapNordCargoStatus(code: string): OrderStatus | null {
 
 export const NORDCARGO_COUNTRIES: readonly CountryCode[] = ['DK', 'SE', 'NO', 'FI', 'IS', 'EE', 'LV', 'LT', 'DE', 'PL', 'NL'];
 export const NORDCARGO_MAX_WEIGHT_KG = 30; // stricter than the platform's 100 kg
+
+// NordCargo's webhook: camelCase JSON with a nested shipment, plain hex in X-Signature.
+const NordCargoWebhookSchema = z.object({
+  eventId: z.string().min(1).max(100),
+  shipment: z.object({ trackingNo: z.string().min(1).max(64) }),
+  eventCode: z.string().min(1).max(16),
+  eventTime: z.iso.datetime(),
+});
+
+export const NORDCARGO_WEBHOOK: WebhookSpec = {
+  signatureHeader: 'x-signature',
+  timestampHeader: 'x-timestamp',
+  readSignature: (value) => value,
+  formatSignature: (hex) => hex,
+  parse: parseWith(NordCargoWebhookSchema, (payload) => ({
+    eventId: payload.eventId,
+    trackingNumber: payload.shipment.trackingNo,
+    externalStatus: payload.eventCode,
+    occurredAt: payload.eventTime,
+  })),
+  buildPayload: (event) => ({
+    eventId: event.eventId,
+    shipment: { trackingNo: event.trackingNumber },
+    eventCode: event.externalStatus,
+    eventTime: event.occurredAt,
+  }),
+  normalizeStatus: mapNordCargoStatus,
+  statusCodes: Object.keys(NORDCARGO_STATUS_MAP),
+};
 
 const TIMELINE: TimelineStep<NordCargoEventCode>[] = [
   { afterHours: 0, code: 'NC10' },
@@ -78,6 +109,8 @@ export class NordCargoProvider implements CourierProvider {
     ],
     addressValidation: true,
   };
+
+  readonly webhook = NORDCARGO_WEBHOOK;
 
   private readonly store: MockShipmentStore<NordCargoEventCode>;
 

@@ -10,6 +10,15 @@ describe('loadConfig', () => {
       mockProviderSeed: undefined,
       providerTimeoutMs: 2000,
       logLevel: 'info',
+      webhookSecrets: { swiftparcel: undefined, nordcargo: undefined },
+    });
+  });
+
+  it('reads webhook secrets, treating an empty value (as in .env.example) as not set', () => {
+    const secret = 'a'.repeat(64);
+    expect(loadConfig({ WEBHOOK_SECRET_SWIFTPARCEL: secret, WEBHOOK_SECRET_NORDCARGO: '' }).webhookSecrets).toEqual({
+      swiftparcel: secret,
+      nordcargo: undefined,
     });
   });
 
@@ -46,6 +55,7 @@ describe('loadConfig', () => {
     [{ MOCK_PROVIDER_SEED: '' }, 'MOCK_PROVIDER_SEED'],
     [{ PROVIDER_TIMEOUT_MS: '50' }, 'PROVIDER_TIMEOUT_MS'],
     [{ LOG_LEVEL: 'verbose' }, 'LOG_LEVEL'],
+    [{ WEBHOOK_SECRET_NORDCARGO: 'too-short' }, 'WEBHOOK_SECRET_NORDCARGO'],
     [{ PROVIDER_TIMEOUT_MS: 'soon' }, 'PROVIDER_TIMEOUT_MS'],
     [{ MOCK_PROVIDER_SEED: '1.5' }, 'MOCK_PROVIDER_SEED'],
     [{ MOCK_PROVIDER_SEED: '-3' }, 'MOCK_PROVIDER_SEED'],

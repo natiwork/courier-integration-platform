@@ -1,5 +1,6 @@
 import type { CountryCode } from '../domain/countries.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
+import type { WebhookSpec } from './webhooks.js';
 
 // The contract every courier integration implements. The rest of the app only knows this interface,
 // so a new courier is a new file plus one registration line in providers/index.ts.
@@ -83,6 +84,8 @@ export interface CourierProvider {
   readonly id: string; // stable, stored on orders: "swiftparcel"
   readonly name: string; // shown in the UI: "SwiftParcel"
   readonly capabilities: ProviderCapabilities;
+  // How this courier calls us back with status updates: its payload, headers and status vocabulary.
+  readonly webhook: WebhookSpec;
   createShipment(input: ShipmentInput, options?: CallOptions): Promise<ProviderResult<CreatedShipment>>;
   getShipmentStatus(trackingNumber: string, options?: CallOptions): Promise<ProviderResult<ShipmentStatusReport>>;
   validateAddress?(address: ShipmentAddress, options?: CallOptions): Promise<ProviderResult<{ valid: true }>>;

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { SUPPORTED_COUNTRIES } from '../domain/countries.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type {
@@ -20,6 +21,7 @@ import {
   type MockProviderOptions,
   type TimelineStep,
 } from './mockSupport.js';
+import { parseWith, type WebhookSpec } from './webhooks.js';
 
 // SwiftParcel: a FICTIONAL courier (mock). Fast and reliable: it never fails temporarily.
 // Its API speaks lowercase status strings.
@@ -61,6 +63,35 @@ const TIMELINE: TimelineStep<SwiftParcelStatus>[] = [
   { afterHours: 30, code: 'delivered' },
 ];
 
+// SwiftParcel's webhook: snake_case JSON, signature header "sha256=<hex>".
+const SwiftParcelWebhookSchema = z.object({
+  id: z.string().min(1).max(100),
+  tracking_number: z.string().min(1).max(64),
+  status: z.string().min(1).max(64),
+  occurred_at: z.iso.datetime(),
+});
+
+export const SWIFTPARCEL_WEBHOOK: WebhookSpec = {
+  signatureHeader: 'x-swiftparcel-signature',
+  timestampHeader: 'x-swiftparcel-timestamp',
+  readSignature: (value) => (value.startsWith('sha256=') ? value.slice('sha256='.length) : null),
+  formatSignature: (hex) => `sha256=${hex}`,
+  parse: parseWith(SwiftParcelWebhookSchema, (payload) => ({
+    eventId: payload.id,
+    trackingNumber: payload.tracking_number,
+    externalStatus: payload.status,
+    occurredAt: payload.occurred_at,
+  })),
+  buildPayload: (event) => ({
+    id: event.eventId,
+    tracking_number: event.trackingNumber,
+    status: event.externalStatus,
+    occurred_at: event.occurredAt,
+  }),
+  normalizeStatus: mapSwiftParcelStatus,
+  statusCodes: Object.keys(SWIFTPARCEL_STATUS_MAP),
+};
+
 const CALL_LATENCY: LatencyRange = [80, 200];
 const PING_LATENCY: LatencyRange = [20, 60];
 
@@ -76,6 +107,8 @@ export class SwiftParcelProvider implements CourierProvider {
     ],
     addressValidation: false,
   };
+
+  readonly webhook = SWIFTPARCEL_WEBHOOK;
 
   private readonly store: MockShipmentStore<SwiftParcelStatus>;
 

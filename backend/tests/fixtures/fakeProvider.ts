@@ -9,6 +9,7 @@ import type {
   ShipmentInput,
   ShipmentStatusReport,
 } from '../../src/providers/courierProvider.js';
+import { SWIFTPARCEL_WEBHOOK } from '../../src/providers/swiftParcel.js';
 
 // A courier whose answers the test decides. Records every call, and can hold an answer back
 // (`gate`) to simulate a slow courier while another request arrives.
@@ -19,6 +20,8 @@ export class FakeProvider implements CourierProvider {
     services: [{ id: 'standard', name: 'Standard' }],
     addressValidation: false,
   };
+  // Speaks SwiftParcel's webhook format; webhook tests use the real couriers.
+  readonly webhook = SWIFTPARCEL_WEBHOOK;
   readonly calls: ShipmentInput[] = [];
   next: ProviderResult<CreatedShipment> | (() => never) = {
     kind: 'success',
