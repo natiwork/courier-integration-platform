@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { createApp } from './app.js';
 import { loadConfig, type AppConfig } from './config/env.js';
 import { pendingMigrations } from './db/migrate.js';
@@ -60,6 +61,18 @@ if (config.seedDemoData && pool) {
   logger.info('demo data seeded', { orders: demoOrders.length, events: demoEvents.length, hint: 'set SEED_DEMO_DATA=false to start empty' });
 }
 
+// The built-in webhook simulator signs its updates with the same secret this server checks, so without configured
+// secrets a random one per start is all it needs (never printed). With the simulator off there is no such
+// fallback: webhooks from outside need a secret both sides know, and a missing one answers 503.
+const webhookSecrets = { ...config.webhookSecrets };
+if (config.webhookSimulator) {
+  const generated = Object.keys(webhookSecrets).filter((id) => !webhookSecrets[id]);
+  for (const id of generated) webhookSecrets[id] = randomBytes(32).toString('hex');
+  if (generated.length > 0) {
+    logger.info('webhook secrets generated for this run', { providers: generated, hint: 'set WEBHOOK_SECRET_* to accept webhooks from elsewhere' });
+  }
+}
+
 // The mock couriers wait like real network calls here. Log the seed so a run can be repeated.
 const providerSeed = config.mockProviderSeed ?? Date.now() % 2 ** 31;
 const providerRegistry = createProviderRegistry({ seed: providerSeed, simulateLatency: true });
@@ -74,7 +87,7 @@ const server = createApp({
   webhookLog: storage.webhookLog,
   providerRegistry,
   providerTimeoutMs: config.providerTimeoutMs,
-  webhookSecrets: config.webhookSecrets,
+  webhookSecrets,
   webhookSimulator: config.webhookSimulator,
   demoData: config.seedDemoData,
 }).listen(config.port, () => {

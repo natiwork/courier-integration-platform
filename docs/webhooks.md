@@ -40,7 +40,7 @@ Statuses are translated with each courier's existing table (see [courier-provide
 signature = hex( HMAC-SHA256( secret, timestamp + "." + rawBody ) )
 ```
 
-- **Secrets** come from the environment: `WEBHOOK_SECRET_SWIFTPARCEL` and `WEBHOOK_SECRET_NORDCARGO`, at least 32 characters each (`openssl rand -hex 32`). `.env.example` has empty placeholders; real values live only in `backend/.env`, which git ignores. Without a secret, that courier's endpoint answers `503 WEBHOOK_NOT_CONFIGURED`.
+- **Secrets** come from the environment: `WEBHOOK_SECRET_SWIFTPARCEL` and `WEBHOOK_SECRET_NORDCARGO`, at least 32 characters each (`openssl rand -hex 32`). `.env.example` has empty placeholders; real values live only in `backend/.env`, which git ignores. Without a secret, that courier's endpoint answers `503 WEBHOOK_NOT_CONFIGURED`, unless the built-in simulator is on (`WEBHOOK_SIMULATOR`, default outside production): then the server picks a random secret per start, never printed, because the simulator and the endpoint run in the same process. The CLI simulator and curl need fixed secrets in `backend/.env`.
 - **Constant-time comparison:** `crypto.timingSafeEqual`. A normal `===` stops at the first different character, so an attacker measuring response times could find a valid signature one byte at a time. The format (64 hex characters) is checked first, because `timingSafeEqual` needs two buffers of the same length.
 - **Replay protection:** the timestamp is part of what is signed, so it can't be changed. Once the signature checks out, a timestamp more than **300 seconds** from now (past or future) is refused. A captured request can't be resent later. A copy resent within those 5 minutes is caught by deduplication.
 

@@ -68,7 +68,7 @@ npm run dev       # http://localhost:5173 (calls /api through the Vite proxy)
 
 Example requests (valid and invalid) are in [backend/requests.http](../backend/requests.http) for the VS Code REST Client extension.
 
-Webhooks need `WEBHOOK_SECRET_SWIFTPARCEL` and `WEBHOOK_SECRET_NORDCARGO` in `backend/.env` (`openssl rand -hex 32` each). Then send a signed courier update with `npm run simulate:webhook -- --provider swiftparcel --tracking <number> --status in_transit` (in `backend/`). See [docs/webhooks.md](webhooks.md).
+The "Simulate a courier update" box in the UI works without any setup: while the simulator is on (the default outside production) and no secret is configured, the server picks a random secret per start. The CLI and curl run as separate processes and can't know that secret, so for them put fixed `WEBHOOK_SECRET_SWIFTPARCEL` and `WEBHOOK_SECRET_NORDCARGO` values in `backend/.env` (`openssl rand -hex 32` each). Then send a signed courier update with `npm run simulate:webhook -- --provider swiftparcel --tracking <number> --status in_transit` (in `backend/`). See [docs/webhooks.md](webhooks.md).
 
 In development, `/styleguide` shows every component and state in both themes, using sample text. This page is not included in production builds.
 
