@@ -115,7 +115,7 @@ export class NordCargoProvider implements CourierProvider {
   private readonly store: MockShipmentStore<NordCargoEventCode>;
 
   constructor(private readonly options: MockProviderOptions) {
-    this.store = new MockShipmentStore(TIMELINE, mapNordCargoStatus, options.now ?? (() => new Date()));
+    this.store = new MockShipmentStore(TIMELINE, mapNordCargoStatus, options.now ?? (() => new Date()), options.trackingNumberStart);
   }
 
   async createShipment(input: ShipmentInput, options: CallOptions = {}): Promise<ProviderResult<CreatedShipment>> {

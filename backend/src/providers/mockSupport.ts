@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import {
   permanentError,
@@ -18,6 +19,7 @@ export interface MockProviderOptions {
   random: () => number; // seeded in tests, so every "random" outcome is repeatable
   now?: () => Date;
   simulateLatency?: boolean; // false in tests: no waiting
+  trackingNumberStart?: number; // 0–9999; random per process unless a test fixes it (see MockShipmentStore)
 }
 
 export type LatencyRange = readonly [minMs: number, maxMs: number];
@@ -42,17 +44,26 @@ interface StoredShipment {
 // so a test with a fixed clock always gets the same answer.
 export class MockShipmentStore<Code extends string> {
   private readonly shipments = new Map<string, StoredShipment>();
+  // Where this process's running number starts. With a fixed MOCK_PROVIDER_SEED every process draws the same
+  // "random" digits, and with PostgreSQL the orders outlive the process: starting at 1 each time would hand out
+  // a tracking number an existing order already has. Random per process unless a test fixes it.
+  private readonly firstNumber: number;
 
   constructor(
     private readonly timeline: readonly TimelineStep<Code>[],
     private readonly normalize: (code: string) => OrderStatus | null,
     private readonly now: () => Date,
-  ) {}
+    trackingNumberStart: number = randomInt(10_000),
+  ) {
+    this.firstNumber = trackingNumberStart;
+  }
 
-  // Tracking number = prefix + 6 random digits + a running number, so it is unique without a retry loop.
+  // Tracking number = prefix + 6 random digits + a running number, so it is unique within the process without a
+  // retry loop (and across processes almost surely; the UNIQUE constraint in the database is the last guard).
   add(prefix: string, random: () => number): ProviderResult<CreatedShipment> {
     const randomPart = String(Math.floor(random() * 1e6)).padStart(6, '0');
-    const trackingNumber = `${prefix}${randomPart}${String(this.shipments.size + 1).padStart(4, '0')}`;
+    const runningNumber = String((this.firstNumber + this.shipments.size) % 10_000).padStart(4, '0');
+    const trackingNumber = `${prefix}${randomPart}${runningNumber}`;
     this.shipments.set(trackingNumber, { createdAt: this.now().getTime() });
     const first = this.timeline[0]!;
     return success({ trackingNumber, status: this.normalize(first.code)!, externalStatus: first.code });

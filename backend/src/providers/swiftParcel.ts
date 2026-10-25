@@ -113,7 +113,7 @@ export class SwiftParcelProvider implements CourierProvider {
   private readonly store: MockShipmentStore<SwiftParcelStatus>;
 
   constructor(private readonly options: MockProviderOptions) {
-    this.store = new MockShipmentStore(TIMELINE, mapSwiftParcelStatus, options.now ?? (() => new Date()));
+    this.store = new MockShipmentStore(TIMELINE, mapSwiftParcelStatus, options.now ?? (() => new Date()), options.trackingNumberStart);
   }
 
   async createShipment(input: ShipmentInput, options: CallOptions = {}): Promise<ProviderResult<CreatedShipment>> {

@@ -97,9 +97,22 @@ describe('SwiftParcelProvider', () => {
     });
   });
 
-  it('gives the same results for the same seed', async () => {
-    const results = await Promise.all([provider(), provider()].map((p) => p.createShipment(shipmentInput())));
+  it('gives the same results for the same seed (and the same start of the running number)', async () => {
+    const seeded = () => new SwiftParcelProvider({ random: createRandom(1), now: () => CREATED, simulateLatency: false, trackingNumberStart: 0 });
+    const results = await Promise.all([seeded(), seeded()].map((p) => p.createShipment(shipmentInput())));
     expect(results[0]).toEqual(results[1]);
+  });
+
+  // With the same seed, a restarted process draws the same digits; the running number must not start over,
+  // or it would issue a tracking number an order in the database already has.
+  it('continues the running number from where this process started, keeping the seeded digits', async () => {
+    const at = (start: number) => new SwiftParcelProvider({ random: createRandom(1), now: () => CREATED, simulateLatency: false, trackingNumberStart: start });
+    const first = await at(0).createShipment(shipmentInput());
+    const second = await at(42).createShipment(shipmentInput());
+    if (first.kind !== 'success' || second.kind !== 'success') throw new Error('expected success');
+    expect(first.value.trackingNumber.slice(0, 8)).toBe(second.value.trackingNumber.slice(0, 8));
+    expect(first.value.trackingNumber.slice(8)).toBe('0000');
+    expect(second.value.trackingNumber.slice(8)).toBe('0042');
   });
 
   it('reports a simulated, healthy check', async () => {
