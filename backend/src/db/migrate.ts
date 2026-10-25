@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Pool } from './pool.js';
+import { query } from './query.js';
 
 // backend/migrations, both from src/db (tsx) and from dist/db (the build).
 export const MIGRATIONS_DIR = fileURLToPath(new URL('../../migrations/', import.meta.url));
@@ -47,4 +48,14 @@ export async function migrate(pool: Pool, dir: string = MIGRATIONS_DIR): Promise
     await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_ID]).catch(() => undefined);
     client.release();
   }
+}
+
+// Files not applied yet. The server refuses to start on an outdated schema instead of failing on the first query.
+export async function pendingMigrations(pool: Pool, dir: string = MIGRATIONS_DIR): Promise<string[]> {
+  const files = (await readdir(dir)).filter((file) => FILE_NAME.test(file)).sort();
+  const table = await query<{ exists: boolean }>(pool, "SELECT to_regclass('schema_migrations') IS NOT NULL AS exists");
+  if (!table.rows[0]?.exists) return files;
+  const done = await query<{ name: string }>(pool, 'SELECT name FROM schema_migrations');
+  const applied = new Set(done.rows.map((row) => row.name));
+  return files.filter((file) => !applied.has(file));
 }

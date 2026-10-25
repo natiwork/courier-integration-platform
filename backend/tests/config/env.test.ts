@@ -13,6 +13,7 @@ describe('loadConfig', () => {
       webhookSecrets: { swiftparcel: undefined, nordcargo: undefined },
       webhookSimulator: true,
       databaseUrl: undefined,
+      storage: 'memory',
     });
   });
 
@@ -75,6 +76,8 @@ describe('loadConfig', () => {
     [{ PROVIDER_TIMEOUT_MS: 'soon' }, 'PROVIDER_TIMEOUT_MS'],
     [{ MOCK_PROVIDER_SEED: '1.5' }, 'MOCK_PROVIDER_SEED'],
     [{ MOCK_PROVIDER_SEED: '-3' }, 'MOCK_PROVIDER_SEED'],
+    [{ STORAGE: 'mongo' }, 'STORAGE'],
+    [{ STORAGE: 'postgres' }, 'DATABASE_URL is required when STORAGE=postgres'],
   ])('stops with a clear message for %o', (env, name) => {
     expect(() => loadConfig(env)).toThrow(new RegExp(`Invalid environment variables:[\\s\\S]*${name}`));
   });

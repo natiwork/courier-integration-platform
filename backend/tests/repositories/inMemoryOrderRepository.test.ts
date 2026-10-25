@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
+import { orderRepositoryContract } from '../contracts/orderRepository.contract.js';
 import { buildOrder } from '../fixtures/orders.js';
+
+orderRepositoryContract('InMemoryOrderRepository', async () => new InMemoryOrderRepository());
 
 describe('InMemoryOrderRepository', () => {
   it('returns deep copies, so changing a returned order never changes the store', async () => {

@@ -10,6 +10,7 @@ import type { ProviderRegistry } from './providers/providerRegistry.js';
 import { InMemoryOrderEventRepository } from './repositories/inMemoryOrderEventRepository.js';
 import type { OrderEventRepository } from './repositories/orderEventRepository.js';
 import type { OrderRepository } from './repositories/orderRepository.js';
+import type { RunInTransaction } from './repositories/transaction.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
 import { createCourierRouter } from './routes/courierRoutes.js';
 import { createDevRouter } from './routes/devRoutes.js';
@@ -36,6 +37,8 @@ export interface AppOptions {
   orderRepository?: OrderRepository;
   // Defaults to a fresh in-memory event log. Pass the one the orders were seeded with.
   orderEventRepository?: OrderEventRepository;
+  // Given by PostgreSQL storage: an order change and its event are written in one transaction.
+  runInTransaction?: RunInTransaction;
   // Defaults to a fresh in-memory store of Idempotency-Key responses (24 h).
   idempotencyStore?: IdempotencyStore;
   // Defaults to the mock providers with a fixed seed and no simulated latency.
@@ -62,7 +65,7 @@ export interface AppOptions {
 export function createApp(options: AppOptions = {}): Express {
   const orderRepository = options.orderRepository ?? new InMemoryOrderRepository();
   const orderEventRepository = options.orderEventRepository ?? new InMemoryOrderEventRepository();
-  const orderService = new OrderService(orderRepository, orderEventRepository, options.now);
+  const orderService = new OrderService(orderRepository, orderEventRepository, options.now, options.runInTransaction);
   const statsService = new StatsService(orderRepository, orderEventRepository, { now: options.now, demoData: options.demoData });
   const providerRegistry =
     options.providerRegistry ??
