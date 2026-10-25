@@ -1,22 +1,38 @@
-import { PackagePlus } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router';
-import { Card } from '../components/Card/Card';
-import { EmptyState } from '../components/EmptyState/EmptyState';
+import { getOrderFormOptions } from '../api/meta';
+import { CreateOrderForm } from '../components/CreateOrderForm/CreateOrderForm';
+import { ErrorState } from '../components/ErrorState/ErrorState';
 import { PageHeader } from '../components/PageHeader/PageHeader';
+import { Skeleton } from '../components/Skeleton/Skeleton';
+import { useApi } from '../hooks/useApi';
+import styles from './CreateShipmentPage.module.css';
 
 export function CreateShipmentPage() {
+  // Countries and limits come from the backend, so the form never hard-codes them.
+  const options = useApi((signal) => getOrderFormOptions(signal), 'order-form-options');
+
   return (
     <>
-      <PageHeader title="New shipment" description="Create an order and choose how it will be shipped." />
-      <Card title="Shipment form" icon={<PackagePlus size={18} />}>
-        <EmptyState
-          headingLevel={3}
-          icon={<PackagePlus size={28} />}
-          title="The shipment form isn't built yet"
-          description="You'll be able to create a shipment here soon. Existing orders are in the shipments list."
-          action={<Link to="/shipments">Go to shipments</Link>}
+      <Link to="/shipments" className={styles.back}>
+        <ChevronLeft aria-hidden="true" size={18} /> Back to shipments
+      </Link>
+      <PageHeader title="New shipment" />
+      <p id="form-intro" className={styles.intro}>
+        The order starts as Pending. A courier is chosen when it ships.
+      </p>
+
+      {options.status === 'error' ? (
+        <ErrorState
+          title="The form couldn't be loaded"
+          description={`${options.error?.message ?? ''} The list of countries and limits comes from the server.`}
+          onRetry={options.reload}
         />
-      </Card>
+      ) : !options.data ? (
+        <Skeleton label="Loading the form" lines={[{ height: '9rem' }, { height: '12rem' }, { height: '10rem' }]} />
+      ) : (
+        <CreateOrderForm options={options.data} />
+      )}
     </>
   );
 }

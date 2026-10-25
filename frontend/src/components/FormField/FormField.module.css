@@ -1,0 +1,52 @@
+.field {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.label {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* Shared look for every control inside a field */
+.field :is(input, select) {
+  width: 100%;
+  min-height: 46px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field :is(input, select)::placeholder {
+  color: var(--muted);
+}
+
+/* Invalid: thicker danger border plus the message below (colour is never the only signal) */
+.invalid :is(input, select) {
+  border: 2px solid var(--danger);
+  padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.error svg {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+}

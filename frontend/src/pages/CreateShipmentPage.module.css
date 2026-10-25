@@ -1,0 +1,20 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  margin-bottom: var(--space-2);
+  color: var(--text-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.intro {
+  margin: calc(-1 * var(--space-4)) 0 var(--space-5);
+  color: var(--text-2);
+}
