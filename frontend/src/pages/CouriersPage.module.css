@@ -1,0 +1,18 @@
+/* One card per row on narrow screens, two side by side once each card can be at least ~440px wide. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 27.5rem), 1fr));
+  align-items: start;
+  gap: var(--grid-gap);
+  transition: opacity 0.2s;
+}
+
+.grid[data-stale] {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid {
+    transition: none;
+  }
+}

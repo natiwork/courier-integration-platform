@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
+import type { Courier } from '../api/couriers';
 import { Button } from '../components/Button/Button';
+import { CourierCard, CourierCardSkeleton } from '../components/CourierCard/CourierCard';
 import { DeliveryGauge } from '../components/DeliveryGauge/DeliveryGauge';
 import { EmptyState } from '../components/EmptyState/EmptyState';
 import { ErrorState } from '../components/ErrorState/ErrorState';
@@ -40,6 +42,33 @@ function sampleOrder(status: OrderStatus): Order {
     trackingNumber: null,
     createdAt: '2026-01-05T09:30:00.000Z',
     updatedAt: '2026-01-07T16:45:00.000Z',
+  };
+}
+
+const SAMPLE_COUNTRIES = ['AT', 'BE', 'DE', 'DK', 'FI', 'FR', 'NL', 'NO', 'PL', 'SE'];
+
+// A sample courier for the card specimens: the real ones come from /api/couriers.
+function sampleCourier(status: 'up' | 'down'): Courier {
+  return {
+    id: `sample-${status}`,
+    name: status === 'up' ? 'Sample courier' : 'Sample courier, no answer',
+    mock: true,
+    capabilities: {
+      maxParcelWeightKg: status === 'up' ? 100 : 30,
+      supportedCountries: status === 'up' ? SAMPLE_COUNTRIES : ['DE', 'DK', 'SE'],
+      services: [
+        { id: 'standard', name: 'Standard' },
+        { id: 'economy', name: 'Economy' },
+      ],
+      addressValidation: status === 'down',
+    },
+    health: {
+      status,
+      latencyMs: status === 'up' ? 42 : 187,
+      checkedAt: '2026-01-07T16:45:00.000Z',
+      simulated: true,
+      note: 'Simulated check: mock provider, no external service is contacted.',
+    },
   };
 }
 
@@ -153,6 +182,15 @@ function Specimens({ theme }: { theme: 'light' | 'dark' }) {
             <DeliveryGauge ratio={0.9} delivered={900} failed={40} returned={60} />
           </div>
         </div>
+      </section>
+
+      <section className={styles.section} aria-labelledby={id('courier')}>
+        <h3 id={id('courier')} className={styles.heading}>
+          Courier card: responding, not responding, loading
+        </h3>
+        <CourierCard courier={sampleCourier('up')} platformCountries={SAMPLE_COUNTRIES} platformMaxWeightKg={100} />
+        <CourierCard courier={sampleCourier('down')} platformCountries={SAMPLE_COUNTRIES} platformMaxWeightKg={100} />
+        <CourierCardSkeleton />
       </section>
 
       <section className={styles.section} aria-labelledby={id('timeline')}>
