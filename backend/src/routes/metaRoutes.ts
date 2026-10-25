@@ -1,12 +1,13 @@
 import { Router } from 'express';
-import { createMetaController } from '../controllers/metaController.js';
+import { createMetaController, type Features } from '../controllers/metaController.js';
 
 // Mounted at /api/meta.
-export function createMetaRouter(): Router {
+export function createMetaRouter(features: Features): Router {
   const router = Router();
-  const controller = createMetaController();
+  const controller = createMetaController(features);
 
   router.get('/order-form', controller.orderForm);
+  router.get('/features', controller.features);
 
   return router;
 }

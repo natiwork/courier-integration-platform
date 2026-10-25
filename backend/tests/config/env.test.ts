@@ -11,7 +11,14 @@ describe('loadConfig', () => {
       providerTimeoutMs: 2000,
       logLevel: 'info',
       webhookSecrets: { swiftparcel: undefined, nordcargo: undefined },
+      webhookSimulator: true,
     });
+  });
+
+  it('turns the webhook simulator off in production unless asked for', () => {
+    expect(loadConfig({ NODE_ENV: 'production' }).webhookSimulator).toBe(false);
+    expect(loadConfig({ NODE_ENV: 'production', WEBHOOK_SIMULATOR: 'true' }).webhookSimulator).toBe(true);
+    expect(loadConfig({ WEBHOOK_SIMULATOR: 'false' }).webhookSimulator).toBe(false);
   });
 
   it('reads webhook secrets, treating an empty value (as in .env.example) as not set', () => {

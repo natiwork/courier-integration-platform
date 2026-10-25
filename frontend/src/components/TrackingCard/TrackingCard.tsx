@@ -8,12 +8,14 @@ import { formatDateTime, formatTime } from '../../lib/format';
 import { STATUS_LABELS } from '../../lib/labels';
 import type { Order } from '../../types/order';
 import { Button } from '../Button/Button';
+import { SimulatedUpdate } from '../SimulatedUpdate/SimulatedUpdate';
 import styles from './TrackingCard.module.css';
 
 type Check = { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; report: TrackingReport } | { kind: 'error'; message: ErrorMessage };
 
 // The courier and tracking number of an order, with copy and "ask the courier".
-export function TrackingCard({ order }: { order: Order }) {
+// onOrderChanged: a simulated courier update changed the order; the page reloads it.
+export function TrackingCard({ order, onOrderChanged }: { order: Order; onOrderChanged: () => void }) {
   const courierName = useCourierName();
   const [copyStatus, setCopyStatus] = useState('');
   const [check, setCheck] = useState<Check>({ kind: 'idle' });
@@ -106,6 +108,7 @@ export function TrackingCard({ order }: { order: Order }) {
           </div>
         </div>
       )}
+      <SimulatedUpdate order={order} onSent={onOrderChanged} />
     </div>
   );
 }

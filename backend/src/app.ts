@@ -12,6 +12,7 @@ import type { OrderEventRepository } from './repositories/orderEventRepository.j
 import type { OrderRepository } from './repositories/orderRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
 import { createCourierRouter } from './routes/courierRoutes.js';
+import { createDevRouter } from './routes/devRoutes.js';
 import { createIntegrationRouter } from './routes/integrationRoutes.js';
 import { createMetaRouter } from './routes/metaRoutes.js';
 import { createOrderRouter } from './routes/orderRoutes.js';
@@ -23,6 +24,7 @@ import { OrderService } from './services/orderService.js';
 import { ShipmentService } from './services/shipmentService.js';
 import { StatsService } from './services/statsService.js';
 import { WebhookService } from './services/webhookService.js';
+import { WebhookSimulatorService } from './services/webhookSimulatorService.js';
 import { InMemoryWebhookEventStore } from './webhooks/webhookEventStore.js';
 import { InMemoryWebhookLog } from './webhooks/webhookLog.js';
 
@@ -50,6 +52,8 @@ export interface AppOptions {
   webhookSecrets?: Record<string, string | undefined>;
   webhookEventStore?: InMemoryWebhookEventStore;
   webhookLog?: InMemoryWebhookLog;
+  // Registers the dev-only webhook simulator routes (/api/dev). Off unless asked for.
+  webhookSimulator?: boolean;
   // Injectable clock for tests.
   now?: () => Date;
 }
@@ -102,9 +106,13 @@ export function createApp(options: AppOptions = {}): Express {
 
   app.use('/api/orders', createOrderRouter(orderService, shipmentService, providerRegistry, idempotencyStore));
   app.use('/api/stats', createStatsRouter(statsService));
-  app.use('/api/meta', createMetaRouter());
+  app.use('/api/meta', createMetaRouter({ webhookSimulator: options.webhookSimulator ?? false }));
   app.use('/api/couriers', createCourierRouter(courierService));
   app.use('/api/integrations', createIntegrationRouter(integrationService));
+  if (options.webhookSimulator) {
+    const simulator = new WebhookSimulatorService(orderService, providerRegistry, webhookService, options.webhookSecrets ?? {});
+    app.use('/api/dev', createDevRouter(simulator));
+  }
 
   // Must come after all routes.
   app.use(notFound);
