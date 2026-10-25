@@ -43,6 +43,7 @@ createApp({
   orderEventRepository,
   providerRegistry,
   providerTimeoutMs: config.providerTimeoutMs,
+  webhookSecrets: config.webhookSecrets,
   demoData: config.seedDemoData,
 }).listen(config.port, () => {
   logger.info('server listening', { url: `http://localhost:${config.port}`, providerTimeoutMs: config.providerTimeoutMs });

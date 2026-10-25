@@ -85,6 +85,28 @@ export function providerTimeout(providerName: string, detail: ProviderErrorDetai
   return new AppError('PROVIDER_TIMEOUT', `${providerName} did not answer in time. ${consequence}`, 504, [detail]);
 }
 
+// Webhooks. 401: we can't trust the sender. 404 for an unknown tracking number on purpose: the courier will
+// retry, which helps when its webhook overtook our own write of the tracking number.
+export function invalidSignature(): AppError {
+  return new AppError('INVALID_SIGNATURE', 'The webhook signature is missing or invalid', 401);
+}
+
+export function staleWebhook(toleranceSeconds: number): AppError {
+  return new AppError('STALE_WEBHOOK', `The webhook timestamp is more than ${toleranceSeconds} seconds away from now`, 401);
+}
+
+export function webhookNotConfigured(providerName: string): AppError {
+  return new AppError('WEBHOOK_NOT_CONFIGURED', `Webhooks from ${providerName} are not configured on this server`, 503);
+}
+
+export function invalidWebhookPayload(details: unknown[]): AppError {
+  return new AppError('INVALID_WEBHOOK_PAYLOAD', 'The webhook body is not a valid event', 400, details);
+}
+
+export function unknownTrackingNumber(): AppError {
+  return new AppError('UNKNOWN_TRACKING_NUMBER', 'No order has this tracking number (yet)', 404);
+}
+
 export function notShipped(orderNumber: string): AppError {
   return new AppError('NOT_SHIPPED', `Order ${orderNumber} has not been handed to a courier yet`, 409);
 }

@@ -38,9 +38,9 @@ const NOT_RECORDED = 'Time not recorded';
 // The stages come from the current status; their times come from the order's events.
 // After a retry a status can appear twice: the latest event is the one that counts.
 export function buildStages(order: Order, events: readonly OrderEvent[]): Stage[] {
-  // A recorded payment keeps the status, so it never dates a stage.
+  // A recorded payment or an ignored courier update keeps the status, so it never dates a stage.
   const latest = (status: OrderStatus) =>
-    events.findLast((event) => event.type !== 'PAYMENT_RECORDED' && event.toStatus === status);
+    events.findLast((event) => isStatusChange(event) && event.toStatus === status);
 
   const timed = (status: OrderStatus): Pick<Stage, 'time' | 'dateTime' | 'detail'> => {
     const event = latest(status);
@@ -48,7 +48,8 @@ export function buildStages(order: Order, events: readonly OrderEvent[]): Stage[
     return {
       time: formatDateTime(event.createdAt),
       dateTime: event.createdAt,
-      ...(event.source === 'provider' && { detail: event.message }),
+      // What the courier said, whether as an answer to our call or in its own webhook.
+      ...((event.source === 'provider' || event.source === 'webhook') && { detail: event.message }),
     };
   };
 
@@ -94,9 +95,15 @@ export function routeProgress(status: OrderStatus): number | null {
   return status === 'RETURNED' ? 1 : null;
 }
 
+// Mirrors isStatusChange in backend/src/domain/orderEvent.ts.
+export function isStatusChange(event: Pick<OrderEvent, 'type'>): boolean {
+  return event.type !== 'PAYMENT_RECORDED' && event.type !== 'WEBHOOK_IGNORED';
+}
+
 export const SOURCE_LABELS: Record<OrderEvent['source'], string> = {
   api: 'LogiFlow',
   provider: 'Courier',
-  webhook: 'Courier update',
+  // Every webhook in this project comes from our simulator; the signature checks on them are real.
+  webhook: 'Courier webhook (simulated)',
   system: 'System',
 };

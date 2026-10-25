@@ -88,7 +88,9 @@ function OrderHistory({ events }: { events: OrderEvent[] }) {
                 ? 'Order placed'
                 : event.type === 'PAYMENT_RECORDED'
                   ? 'Payment recorded'
-                  : STATUS_LABELS[event.toStatus]}
+                  : event.type === 'WEBHOOK_IGNORED'
+                    ? 'Courier update ignored'
+                    : STATUS_LABELS[event.toStatus]}
             </span>
             <span className={styles.historyMessage}>{event.message}</span>
             <span className={styles.historyMeta}>

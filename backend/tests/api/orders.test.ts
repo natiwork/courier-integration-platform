@@ -212,6 +212,7 @@ describe('Orders API', () => {
       create: async () => { throw new Error(secret); },
       findAll: async () => { throw new Error(secret); },
       findById: async () => { throw new Error(secret); },
+      findByTrackingNumber: async () => { throw new Error(secret); },
       update: async () => { throw new Error(secret); },
     };
     let logLines: Record<string, unknown>[];

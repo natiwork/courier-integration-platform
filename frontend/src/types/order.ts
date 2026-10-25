@@ -51,7 +51,8 @@ export type OrderEventType =
   | 'SHIPMENT_REJECTED'
   | 'PROVIDER_UNAVAILABLE'
   | 'PROVIDER_TIMEOUT'
-  | 'PAYMENT_RECORDED'; // fromStatus and toStatus are the same: not a status change
+  | 'PAYMENT_RECORDED' // fromStatus and toStatus are the same: not a status change
+  | 'WEBHOOK_IGNORED'; // a courier update that couldn't be applied: not a status change either
 export type EventSource = 'api' | 'provider' | 'webhook' | 'system';
 
 export interface OrderEvent {

@@ -16,11 +16,15 @@ import { createIntegrationRouter } from './routes/integrationRoutes.js';
 import { createMetaRouter } from './routes/metaRoutes.js';
 import { createOrderRouter } from './routes/orderRoutes.js';
 import { createStatsRouter } from './routes/statsRoutes.js';
+import { createWebhookRouter } from './routes/webhookRoutes.js';
 import { CourierService } from './services/courierService.js';
 import { IntegrationService } from './services/integrationService.js';
 import { OrderService } from './services/orderService.js';
 import { ShipmentService } from './services/shipmentService.js';
 import { StatsService } from './services/statsService.js';
+import { WebhookService } from './services/webhookService.js';
+import { InMemoryWebhookEventStore } from './webhooks/webhookEventStore.js';
+import { InMemoryWebhookLog } from './webhooks/webhookLog.js';
 
 // Default for tests: fixed seed and no waiting, so every run gives the same answers instantly.
 const TEST_PROVIDER_SEED = 1;
@@ -42,6 +46,10 @@ export interface AppOptions {
   random?: () => number;
   // True when the store was filled by the demo seed; reported by /api/stats/overview.
   demoData?: boolean;
+  // Webhook signing secrets by provider id. Missing: that courier's webhook endpoint answers 503.
+  webhookSecrets?: Record<string, string | undefined>;
+  webhookEventStore?: InMemoryWebhookEventStore;
+  webhookLog?: InMemoryWebhookLog;
   // Injectable clock for tests.
   now?: () => Date;
 }
@@ -63,6 +71,15 @@ export function createApp(options: AppOptions = {}): Express {
     retry: options.retryPolicy,
     random: options.random,
   });
+  const webhookLog = options.webhookLog ?? new InMemoryWebhookLog();
+  const webhookService = new WebhookService(
+    providerRegistry,
+    orderService,
+    options.webhookSecrets ?? {},
+    options.webhookEventStore ?? new InMemoryWebhookEventStore(options.now),
+    webhookLog,
+    options.now,
+  );
   const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry);
 
   const app = express();
@@ -71,6 +88,8 @@ export function createApp(options: AppOptions = {}): Express {
   // Order matters: requestId first so every later error (including bad JSON) has an id.
   app.use(requestId);
   app.use(requestLogger);
+  // Before express.json(): webhooks need the raw bytes to check the signature (see webhookRoutes.ts).
+  app.use('/api/webhooks', createWebhookRouter(webhookService));
   app.use(express.json());
 
   app.get('/health', (_req, res) => {

@@ -90,6 +90,14 @@ describe('buildStages', () => {
     expect(stages[0]!.dateTime).toBe('2026-10-24T08:00:00.000Z');
   });
 
+  it('never dates a stage with an ignored courier update', () => {
+    const stages = buildStages(order('IN_TRANSIT', 'swiftparcel'), [
+      event('IN_TRANSIT', '2026-10-24T09:00:00.000Z'),
+      event('IN_TRANSIT', '2026-10-24T12:00:00.000Z', { type: 'WEBHOOK_IGNORED', source: 'webhook' }),
+    ]);
+    expect(stages.find((s) => s.key === 'transit')!.dateTime).toBe('2026-10-24T09:00:00.000Z');
+  });
+
   it('says so honestly when a step has no recorded event', () => {
     const stages = buildStages(order('PROCESSING'), []);
     expect(stages[0]!.time).toBe('Time not recorded');

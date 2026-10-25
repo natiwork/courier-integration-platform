@@ -115,6 +115,16 @@ export class OrderService {
     return updated;
   }
 
+  async findByTrackingNumber(trackingNumber: string): Promise<Order | null> {
+    return this.repository.findByTrackingNumber(trackingNumber);
+  }
+
+  // An event without a status change, e.g. a courier update we had to ignore. Kept in the history for auditing.
+  async recordNote(id: string, change: StatusChange): Promise<void> {
+    const order = await this.getOrderById(id);
+    await this.record(id, order.status, order.status, this.now().toISOString(), change);
+  }
+
   private async record(
     orderId: string,
     fromStatus: OrderStatus | null,

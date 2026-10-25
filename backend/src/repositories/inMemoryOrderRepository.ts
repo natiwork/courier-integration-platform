@@ -50,6 +50,13 @@ export class InMemoryOrderRepository implements OrderRepository {
     return order ? structuredClone(order) : null;
   }
 
+  async findByTrackingNumber(trackingNumber: string): Promise<Order | null> {
+    for (const order of this.orders.values()) {
+      if (order.trackingNumber === trackingNumber) return structuredClone(order);
+    }
+    return null;
+  }
+
   async update(order: Order): Promise<Order | null> {
     if (!this.orders.has(order.id)) {
       return null;
