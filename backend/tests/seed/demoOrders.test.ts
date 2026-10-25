@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { computeTotalCents } from '../../src/domain/money.js';
-import { ORDER_STATUSES } from '../../src/domain/orderStatus.js';
+import { canTransition, ORDER_STATUSES } from '../../src/domain/orderStatus.js';
 import { createProviderRegistry } from '../../src/providers/index.js';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
-import { generateDemoOrders } from '../../src/seed/demoOrders.js';
+import { generateDemoEvents, generateDemoOrders } from '../../src/seed/demoOrders.js';
 import { StatsService } from '../../src/services/statsService.js';
 import { CreateOrderSchema } from '../../src/validation/orderSchemas.js';
 
@@ -118,5 +118,58 @@ describe('generateDemoOrders', () => {
     const stored = (await repository.findAll()).reverse(); // oldest first
     const numbers = stored.map((order) => Number(order.orderNumber.slice(4)));
     expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
+  });
+});
+
+describe('generateDemoEvents', () => {
+  const events = generateDemoEvents(orders);
+  const byOrder = Map.groupBy(events, (event) => event.orderId);
+
+  it('gives every demo order a history, and only demo orders', () => {
+    expect(byOrder.size).toBe(orders.length);
+    expect(orders.every((order) => byOrder.has(order.id))).toBe(true);
+  });
+
+  it('is deterministic and leaves the orders untouched', () => {
+    expect(generateDemoEvents(generateDemoOrders(NOW))).toEqual(events);
+    expect(generateDemoOrders(NOW)).toEqual(orders);
+  });
+
+  it('walks the state machine from ORDER_CREATED at createdAt to the current status at updatedAt', () => {
+    for (const order of orders) {
+      const history = byOrder.get(order.id)!;
+      const first = history[0]!;
+      const last = history.at(-1)!;
+      expect(first).toMatchObject({ type: 'ORDER_CREATED', fromStatus: null, toStatus: 'PENDING', createdAt: order.createdAt });
+      expect(last.toStatus).toBe(order.status);
+      // A PENDING order has a single event, which is both the first and the last.
+      expect(last.createdAt).toBe(order.status === 'PENDING' ? order.createdAt : order.updatedAt);
+
+      for (let i = 1; i < history.length; i++) {
+        const event = history[i]!;
+        const previous = history[i - 1]!;
+        expect(event.type).toBe('STATUS_CHANGED');
+        expect(event.fromStatus).toBe(previous.toStatus);
+        expect(canTransition(event.fromStatus!, event.toStatus), `${order.id}: ${event.fromStatus} → ${event.toStatus}`).toBe(true);
+        expect(Date.parse(event.createdAt)).toBeGreaterThan(Date.parse(previous.createdAt));
+        expect(Date.parse(event.createdAt)).toBeLessThanOrEqual(Date.parse(order.updatedAt));
+      }
+    }
+  });
+
+  it('only records a handover for orders that name a courier', () => {
+    for (const order of orders) {
+      const handedOver = byOrder.get(order.id)!.some((event) => event.toStatus === 'SHIPPED');
+      expect(handedOver, order.id).toBe(order.courierProvider !== null);
+    }
+  });
+
+  it('marks the events as generated, never as courier calls', () => {
+    for (const event of events) {
+      expect(event.source).toBe('system');
+      expect(event.providerId).toBeNull();
+      expect(event.message).toMatch(/^Demo data: /);
+    }
+    expect(new Set(events.map((event) => event.id)).size).toBe(events.length);
   });
 });

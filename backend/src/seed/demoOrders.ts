@@ -4,6 +4,7 @@ import { createRandom } from '../lib/random.js';
 import { NORDCARGO_COUNTRIES, NORDCARGO_ID, NORDCARGO_MAX_WEIGHT_KG } from '../providers/nordCargo.js';
 import { SWIFTPARCEL_ID } from '../providers/swiftParcel.js';
 import { CURRENCY, type OrderItem, type PaymentStatus } from '../domain/order.js';
+import type { OrderEvent } from '../domain/orderEvent.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type { NewOrder } from '../repositories/orderRepository.js';
 
@@ -265,5 +266,75 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
       createdAt: new Date(createdMs).toISOString(),
       updatedAt: new Date(updatedMs).toISOString(),
     };
+  });
+}
+
+// The path each final status took through the state machine (see domain/orderStatus.ts).
+function pathTo(order: NewOrder, random: () => number): OrderStatus[] {
+  const delivered: OrderStatus[] = ['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED'];
+  switch (order.status) {
+    case 'RETURNED':
+      return [...delivered, 'RETURNED'];
+    case 'CANCELLED':
+      return ['PENDING', 'CANCELLED'];
+    case 'FAILED':
+      // A courier on the order means the parcel was handed over before it failed; sometimes it was already moving.
+      if (!order.courierProvider) return ['PENDING', 'PROCESSING', 'FAILED'];
+      return random() < 0.5
+        ? ['PENDING', 'PROCESSING', 'SHIPPED', 'FAILED']
+        : ['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'FAILED'];
+    default:
+      return delivered.slice(0, delivered.indexOf(order.status) + 1);
+  }
+}
+
+const DEMO_MESSAGES: Record<OrderStatus, string> = {
+  PENDING: 'Demo data: order placed',
+  PROCESSING: 'Demo data: being prepared',
+  SHIPPED: 'Demo data: handed to the courier',
+  IN_TRANSIT: 'Demo data: in transit',
+  DELIVERED: 'Demo data: delivered',
+  FAILED: 'Demo data: delivery failed',
+  CANCELLED: 'Demo data: cancelled',
+  RETURNED: 'Demo data: returned by the customer',
+};
+
+// A history for every demo order: one event per step, from createdAt to updatedAt.
+// It uses its own generator, so adding events never changes the orders themselves.
+// These are generated, not courier calls: source "system", and never shown as provider operations.
+export function generateDemoEvents(orders: readonly NewOrder[]): OrderEvent[] {
+  const random = createRandom(SEED + 1);
+  return orders.flatMap((order) => {
+    const path = pathTo(order, random);
+    const startMs = Date.parse(order.createdAt);
+    const endMs = Date.parse(order.updatedAt);
+    const steps = path.length - 2; // between the first and the last event
+    // A return comes days after the delivery, so the delivery steps fit in the first 30% of the time.
+    const scale = order.status === 'RETURNED' ? 0.3 : 1;
+
+    let previousMs = startMs;
+    return path.map((status, index): OrderEvent => {
+      let atMs: number;
+      if (index === 0) atMs = startMs;
+      else if (index === path.length - 1) atMs = endMs;
+      else {
+        // Spread evenly with some jitter, always strictly later than the previous step and before the last one.
+        const fraction = ((index + (random() - 0.5) * 0.6) / (steps + 1)) * scale;
+        atMs = Math.min(Math.max(Math.round(startMs + fraction * (endMs - startMs)), previousMs + 1), endMs - (steps - index + 1));
+      }
+      previousMs = atMs;
+      return {
+        id: demoId(random),
+        orderId: order.id,
+        type: index === 0 ? 'ORDER_CREATED' : 'STATUS_CHANGED',
+        fromStatus: index === 0 ? null : path[index - 1]!,
+        toStatus: status,
+        source: 'system',
+        message: index === 0 ? DEMO_MESSAGES.PENDING : DEMO_MESSAGES[status],
+        providerId: null,
+        code: null,
+        createdAt: new Date(atMs).toISOString(),
+      };
+    });
   });
 }
