@@ -1,23 +1,38 @@
+.themes {
+  display: grid;
+  gap: var(--grid-gap);
+}
+
+/* Each panel sets data-theme, so the tokens inside switch to that theme */
+.panel {
+  min-width: 0;
+  padding: var(--card-padding);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.panelTitle {
+  margin-bottom: var(--space-5);
+  font-size: var(--text-xl);
+}
+
 .sections {
   display: grid;
-  gap: var(--space-7);
+  gap: var(--space-6);
 }
 
 .section {
   display: grid;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
-}
-
-/* The page header already draws a rule above the first section */
-.section:first-child {
-  padding-top: 0;
-  border-top: 0;
+  gap: var(--space-3);
 }
 
 .heading {
-  font-size: var(--text-lg);
+  font-family: var(--font-text);
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .row {
@@ -25,4 +40,31 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
+}
+
+.dataRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+.surface {
+  min-width: 0;
+  padding: var(--space-4);
+  border: var(--card-border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.timelines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+  gap: var(--space-4);
+}
+
+@media (min-width: 1200px) {
+  .themes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

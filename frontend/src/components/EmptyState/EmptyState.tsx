@@ -8,12 +8,19 @@ interface EmptyStateProps {
   action?: ReactNode;
   headingLevel?: 2 | 3;
   size?: 'default' | 'compact';
+  // Names the section at a glance (e.g. a truck for couriers). Decorative: hidden from screen readers.
+  icon?: ReactNode;
 }
 
-export function EmptyState({ title, description, action, headingLevel = 2, size = 'default' }: EmptyStateProps) {
+export function EmptyState({ title, description, action, headingLevel = 2, size = 'default', icon }: EmptyStateProps) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   return (
     <section className={`${styles.empty} ${styles[size]}`}>
+      {icon && (
+        <span className={styles.icon} aria-hidden="true">
+          {icon}
+        </span>
+      )}
       <Heading className={styles.title}>{title}</Heading>
       <p className={styles.description}>{description}</p>
       {action && <div className={styles.action}>{action}</div>}
