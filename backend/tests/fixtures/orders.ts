@@ -41,6 +41,8 @@ export function buildOrder(overrides: Partial<Order> = {}): Order {
     courierProvider: null,
     status: 'PENDING',
     trackingNumber: null,
+    shippingStartedAt: null,
+    shippingProviderId: null,
     createdAt,
     updatedAt: createdAt,
     ...overrides,

@@ -118,3 +118,18 @@ export function demoShipment(orderNumber: string): AppError {
     409,
   );
 }
+
+// Another request changed the same order at the same moment, again and again. Practically never happens;
+// the client can simply retry.
+export function concurrentUpdate(orderNumber: string): AppError {
+  return new AppError('CONCURRENT_UPDATE', `Order ${orderNumber} was changed by another request at the same time. Try again.`, 409);
+}
+
+// The recovery job closed this shipping attempt (it looked abandoned) before the courier's answer arrived.
+export function shipmentInterrupted(orderNumber: string): AppError {
+  return new AppError(
+    'SHIPMENT_INTERRUPTED',
+    `The shipping attempt for order ${orderNumber} was closed before the courier answered. Check with the courier before trying again.`,
+    409,
+  );
+}

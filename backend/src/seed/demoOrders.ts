@@ -263,6 +263,8 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
       status,
       courierProvider: courier?.id ?? null,
       trackingNumber: courier ? `${DEMO_TRACKING_PREFIX}${courier.code}-${String(100000 + index * 7919).slice(-6)}` : null,
+      shippingStartedAt: null, // demo orders are never in the middle of a courier call
+      shippingProviderId: null,
       createdAt: new Date(createdMs).toISOString(),
       updatedAt: new Date(updatedMs).toISOString(),
     };

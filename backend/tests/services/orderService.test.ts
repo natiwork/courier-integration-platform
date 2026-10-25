@@ -172,6 +172,35 @@ describe('OrderService', () => {
     });
   });
 
+  // Both requests read PENDING before either writes. Without the conditional update both would pass the check.
+  describe('concurrent changes', () => {
+    it('lets only one of two conflicting status changes win, with exactly one event', async () => {
+      const created = await service.createOrder(input);
+
+      const results = await Promise.allSettled([
+        service.changeStatus(created.id, 'PROCESSING', { source: 'api', message: 'Packed' }),
+        service.changeStatus(created.id, 'CANCELLED', { source: 'api', message: 'Cancelled' }),
+      ]);
+
+      expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+      const rejected = results.find((result) => result.status === 'rejected');
+      expect(rejected?.reason).toMatchObject({ code: 'INVALID_STATUS_TRANSITION', httpStatus: 409 });
+      const history = await service.listEvents(created.id);
+      expect(history.map((event) => event.type)).toEqual(['ORDER_CREATED', 'STATUS_CHANGED']);
+      expect((await service.getOrderById(created.id)).status).toBe(history[1]!.toStatus);
+    });
+
+    it('records a payment once when it is marked paid twice at the same time', async () => {
+      const created = await service.createOrder(input);
+
+      const results = await Promise.allSettled([service.markPaid(created.id), service.markPaid(created.id)]);
+
+      expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+      expect(results.find((result) => result.status === 'rejected')?.reason).toMatchObject({ code: 'PAYMENT_ALREADY_RECORDED' });
+      expect((await service.listEvents(created.id)).filter((event) => event.type === 'PAYMENT_RECORDED')).toHaveLength(1);
+    });
+  });
+
   describe('events', () => {
     it('records ORDER_CREATED when an order is created', async () => {
       const order = await service.createOrder(input);

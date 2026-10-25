@@ -3,6 +3,7 @@ import type { OrderStatus } from '../domain/orderStatus.js';
 import { canTransition } from '../domain/orderStatus.js';
 import {
   alreadyShipped,
+  concurrentUpdate,
   courierCannotTakeOrder,
   demoShipment,
   invalidStatusTransition,
@@ -57,14 +58,17 @@ function isRetryable(outcome: CallOutcome<unknown>): boolean {
   return outcome.kind === 'transient' && outcome.code !== 'PROVIDER_ERROR';
 }
 
-// Hands an order to a courier. Every status change goes through OrderService, so each step is recorded.
-//   PENDING (or FAILED, to try again) → PROCESSING → SHIPPED   courier accepted
-//                                                  → FAILED    courier refused (422), unavailable (502) or too slow (504)
-export class ShipmentService {
-  // Orders with a ship request in flight. Two requests for the same order at the same time would both
-  // see PENDING and call the courier twice; the second one is refused instead (Idempotency-Key in Phase 7).
-  private readonly inFlight = new Set<string>();
+// How often the lock is tried again when the order changed between reading and locking.
+const MAX_START_RETRIES = 3;
 
+// Hands an order to a courier. Every status change goes through OrderService, so each step is recorded.
+//   PENDING or FAILED (to try again) → PROCESSING → SHIPPED   courier accepted
+//   PROCESSING (being prepared) ─────────────────→ FAILED    courier refused (422), unavailable (502) or too slow (504)
+//
+// One shipment at a time: before calling the courier, the request sets the order's shippingStartedAt with a
+// conditional update (only if it is empty). A second request — in this process or in another server process
+// using the same database — finds it set and gets 409 SHIPMENT_IN_PROGRESS. The outcome clears it.
+export class ShipmentService {
   private readonly now: () => Date;
   private readonly timeoutMs: number;
   private readonly retry: RetryPolicy;
@@ -82,17 +86,9 @@ export class ShipmentService {
   }
 
   async ship(orderId: string, { providerId, service }: ShipOrderInput): Promise<Order> {
-    // Checked and taken before the first await, so no other request can slip in between.
-    if (this.inFlight.has(orderId)) {
-      const order = await this.orders.getOrderById(orderId);
-      throw shipmentInProgress(order.orderNumber);
-    }
-    this.inFlight.add(orderId);
-    try {
-      return await this.shipOnce(orderId, this.registry.get(providerId), service);
-    } finally {
-      this.inFlight.delete(orderId);
-    }
+    const provider = this.registry.get(providerId);
+    const { started, input } = await this.start(orderId, provider, service);
+    return this.handOver(started, provider, input);
   }
 
   // Asks the courier for its view of the shipment. The answer is shown, not applied: status changes from
@@ -137,40 +133,47 @@ export class ShipmentService {
     }
   }
 
-  private async shipOnce(orderId: string, provider: CourierProvider, service: string): Promise<Order> {
-    const order = await this.orders.getOrderById(orderId);
+  // Checks that the order can be shipped with this courier, then takes the shipping lock. If another request
+  // changed the order in between, the lock isn't taken; the order is read again and checked again.
+  private async start(orderId: string, provider: CourierProvider, service: string): Promise<{ started: Order; input: ShipmentInput }> {
+    for (let tries = 1; ; tries += 1) {
+      const order = await this.orders.getOrderById(orderId);
 
-    // Domain guard: a tracking number means a courier already has this parcel.
-    if (order.trackingNumber) throw alreadyShipped(order.orderNumber, order.trackingNumber);
-    if (!canTransition(order.status, 'PROCESSING')) throw invalidStatusTransition(order.status, 'PROCESSING');
-    // A parcel leaves only once the money is in. The courier is never called for an unpaid order.
-    if (order.paymentStatus !== 'PAID') throw orderNotPaid(order.orderNumber, order.paymentStatus);
+      if (order.shippingStartedAt) throw shipmentInProgress(order.orderNumber);
+      // Domain guard: a tracking number means a courier already has this parcel.
+      if (order.trackingNumber) throw alreadyShipped(order.orderNumber, order.trackingNumber);
+      if (order.status !== 'PROCESSING' && !canTransition(order.status, 'PROCESSING')) {
+        throw invalidStatusTransition(order.status, 'PROCESSING');
+      }
+      // A parcel leaves only once the money is in. The courier is never called for an unpaid order.
+      if (order.paymentStatus !== 'PAID') throw orderNotPaid(order.orderNumber, order.paymentStatus);
 
-    const input = shipmentInputFor(order, service);
-    // The courier's published limits are checked first: if the parcel can't fit, the courier is never called
-    // and the order stays as it was.
-    const problem = checkCapabilities(provider.name, provider.capabilities, input);
-    if (problem?.kind === 'permanent') {
-      throw courierCannotTakeOrder(provider.name, { providerId: provider.id, code: problem.code, message: problem.message });
+      const input = shipmentInputFor(order, service);
+      // The courier's published limits are checked first: if the parcel can't fit, the courier is never called
+      // and the order stays as it was.
+      const problem = checkCapabilities(provider.name, provider.capabilities, input);
+      if (problem?.kind === 'permanent') {
+        throw courierCannotTakeOrder(provider.name, { providerId: provider.id, code: problem.code, message: problem.message });
+      }
+
+      const serviceName = provider.capabilities.services.find((s) => s.id === service)?.name ?? service;
+      const started = await this.orders.startShipping(order, provider.id, `Shipping requested with ${provider.name} (${serviceName})`);
+      if (started) return { started, input };
+      if (tries === MAX_START_RETRIES) throw concurrentUpdate(order.orderNumber);
     }
+  }
 
-    const serviceName = provider.capabilities.services.find((s) => s.id === service)?.name ?? service;
-    await this.orders.changeStatus(orderId, 'PROCESSING', {
-      source: 'api',
-      message: `Shipping requested with ${provider.name} (${serviceName})`,
-      providerId: provider.id,
-    });
-
-    // Retries happen inside this request while it holds the in-flight lock (see ship()): a second request for the
-    // same order gets 409 SHIPMENT_IN_PROGRESS until all attempts and waits are over, so it can't start a parallel
-    // shipment in between.
+  private async handOver(started: Order, provider: CourierProvider, input: ShipmentInput): Promise<Order> {
+    const orderId = started.id;
+    // Retries happen inside this request while it holds the shipping lock: a second request for the same order
+    // gets 409 SHIPMENT_IN_PROGRESS until all attempts and waits are over, so it can't start a parallel shipment.
     const { result, attempts } = await retryWithBackoff(
       (attempt) => this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal }), { orderId, attempt }),
       { policy: this.retry, shouldRetry: isRetryable, random: this.random },
     );
     switch (result.kind) {
       case 'success':
-        return this.orders.changeStatus(orderId, 'SHIPPED', {
+        return this.orders.finishShipping(started, 'SHIPPED', {
           type: 'SHIPMENT_CREATED',
           source: 'provider',
           message: `${provider.name} accepted the parcel, tracking number ${result.value.trackingNumber}`,
@@ -179,7 +182,7 @@ export class ShipmentService {
           patch: { courierProvider: provider.id, trackingNumber: result.value.trackingNumber },
         });
       case 'permanent': {
-        await this.orders.changeStatus(orderId, 'FAILED', {
+        await this.orders.finishShipping(started, 'FAILED', {
           type: 'SHIPMENT_REJECTED',
           source: 'provider',
           message: `${provider.name} rejected the shipment: ${result.message}`,
@@ -190,7 +193,7 @@ export class ShipmentService {
         throw providerRejected(provider.name, { providerId: provider.id, code: result.code, message: result.message });
       }
       case 'transient': {
-        await this.orders.changeStatus(orderId, 'FAILED', {
+        await this.orders.finishShipping(started, 'FAILED', {
           type: 'PROVIDER_UNAVAILABLE',
           source: 'provider',
           message: `${provider.name} was unavailable: ${result.message}`,
@@ -206,7 +209,7 @@ export class ShipmentService {
       }
       case 'timeout': {
         // Not retried automatically: without an answer we can't know whether the courier created the shipment.
-        await this.orders.changeStatus(orderId, 'FAILED', {
+        await this.orders.finishShipping(started, 'FAILED', {
           type: 'PROVIDER_TIMEOUT',
           source: 'provider',
           message: `${provider.name} did not answer in time: ${result.message}`,

@@ -106,6 +106,46 @@ describe('POST /api/orders/:id/ship', () => {
     expect(t.fake.calls).toHaveLength(0);
   });
 
+  it('ships an order that is being prepared (PROCESSING) without recording a status change it never had', async () => {
+    const { orderNumber: _n, ...prepared } = buildOrder({ id: 'prepared-1', status: 'PROCESSING', paymentStatus: 'PAID' });
+    await t.orderRepository.create(prepared);
+
+    const res = await t.ship('prepared-1', { providerId: 'fake', service: 'standard' }).expect(200);
+
+    expect(res.body.data).toMatchObject({ status: 'SHIPPED', trackingNumber: 'FAKE-0001', shippingStartedAt: null, shippingProviderId: null });
+    expect((await t.history('prepared-1')).map((e: { type: string; fromStatus: string }) => [e.type, e.fromStatus])).toEqual([
+      ['SHIPMENT_CREATED', 'PROCESSING'],
+    ]);
+  });
+
+  it('refuses an order whose shipping lock is taken (e.g. by another server process) and never calls the courier', async () => {
+    const { orderNumber: _n, ...locked } = buildOrder({
+      id: 'locked-1',
+      status: 'PROCESSING',
+      shippingStartedAt: '2026-01-01T10:00:00.000Z',
+      shippingProviderId: 'fake',
+    });
+    await t.orderRepository.create(locked);
+
+    const res = await t.ship('locked-1', { providerId: 'fake', service: 'standard' }).expect(409);
+
+    expect(res.body.error.code).toBe('SHIPMENT_IN_PROGRESS');
+    expect(t.fake.calls).toHaveLength(0);
+  });
+
+  it('shows the shipping lock while the courier is being asked and clears it with the outcome', async () => {
+    let release!: () => void;
+    t.fake.gate = new Promise((resolve) => (release = resolve));
+    const id = await t.createOrder();
+
+    const first = t.ship(id, { providerId: 'fake', service: 'standard' }).then((res) => res);
+    await vi.waitFor(() => expect(t.fake.calls).toHaveLength(1));
+    expect(await t.get(id)).toMatchObject({ status: 'PROCESSING', shippingStartedAt: expect.any(String), shippingProviderId: 'fake' });
+    release();
+
+    expect((await first).body.data).toMatchObject({ status: 'SHIPPED', shippingStartedAt: null, shippingProviderId: null });
+  });
+
   it('returns 404 for an unknown order', async () => {
     const res = await t.ship('missing', { providerId: 'fake', service: 'standard' }).expect(404);
     expect(res.body.error.code).toBe('ORDER_NOT_FOUND');

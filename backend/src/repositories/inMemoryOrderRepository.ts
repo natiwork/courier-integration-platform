@@ -1,5 +1,5 @@
 import type { Order } from '../domain/order.js';
-import type { NewOrder, OrderFilter, OrderRepository } from './orderRepository.js';
+import type { NewOrder, OrderChanges, OrderExpectation, OrderFilter, OrderRepository } from './orderRepository.js';
 
 const FIRST_ORDER_NUMBER = 1001;
 const ORDER_NUMBER_PREFIX = 'ORD-';
@@ -9,7 +9,7 @@ function orderNumberValue(orderNumber: string): number {
   return Number(orderNumber.slice(ORDER_NUMBER_PREFIX.length));
 }
 
-// Keeps orders in a Map. Data is lost on restart; PostgreSQL replaces this in Phase 9.
+// Keeps orders in a Map. Data is lost on restart; STORAGE=postgres keeps it in PostgreSQL instead.
 // Orders contain nested arrays (items), so copies must be deep: callers can never mutate the store.
 export class InMemoryOrderRepository implements OrderRepository {
   private readonly orders = new Map<string, Order>();
@@ -57,11 +57,23 @@ export class InMemoryOrderRepository implements OrderRepository {
     return null;
   }
 
-  async update(order: Order): Promise<Order | null> {
-    if (!this.orders.has(order.id)) {
-      return null;
-    }
-    this.orders.set(order.id, structuredClone(order));
-    return structuredClone(order);
+  async findShippingStartedBefore(before: string): Promise<Order[]> {
+    return [...this.orders.values()]
+      .filter((order) => order.shippingStartedAt !== null && order.shippingStartedAt < before)
+      .map((order) => structuredClone(order));
+  }
+
+  // The check and the write run without an await in between, so no other request can change the order in the
+  // middle (JavaScript runs one piece of code at a time). PostgreSQL gets the same from one UPDATE ... WHERE.
+  async update(id: string, expected: OrderExpectation, changes: OrderChanges): Promise<Order | null> {
+    const order = this.orders.get(id);
+    if (!order) return null;
+    const matches = (Object.keys(expected) as (keyof OrderExpectation)[]).every(
+      (key) => expected[key] === undefined || order[key] === expected[key],
+    );
+    if (!matches) return null;
+    const updated = { ...order, ...changes };
+    this.orders.set(id, structuredClone(updated));
+    return structuredClone(updated);
   }
 }

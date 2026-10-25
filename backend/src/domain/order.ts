@@ -34,6 +34,10 @@ export interface Order {
   courierProvider: string | null; // provider id from the registry ("swiftparcel"), chosen when the order ships
   status: OrderStatus;
   trackingNumber: string | null; // issued by the courier provider
+  // Set while a ship request is waiting for the courier, cleared together with the outcome. This is the lock
+  // that allows one shipment at a time, separate from the status (PROCESSING means "being prepared").
+  shippingStartedAt: string | null; // ISO 8601
+  shippingProviderId: string | null; // the courier being asked
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
 }
