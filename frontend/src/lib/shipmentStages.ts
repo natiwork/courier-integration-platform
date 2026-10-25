@@ -1,5 +1,5 @@
 import { Ban, Boxes, CircleX, ClipboardList, House, Route, Truck, Undo2, type LucideIcon } from 'lucide-react';
-import type { Order, OrderStatus } from '../types/order';
+import type { Order, OrderEvent, OrderStatus } from '../types/order';
 import { formatDateTime } from './format';
 
 export type StageState = 'done' | 'current' | 'upcoming';
@@ -11,16 +11,17 @@ export interface Stage {
   icon: LucideIcon;
   state: StageState;
   tone: Tone;
-  time: string; // what we can honestly say about when it happened
+  time: string; // when it happened, from the recorded event
   dateTime?: string;
+  detail?: string; // what the courier said, when the step came from a courier
 }
 
-const ROUTE: { key: string; label: string; icon: LucideIcon }[] = [
-  { key: 'placed', label: 'Order placed', icon: ClipboardList },
-  { key: 'processing', label: 'Processing', icon: Boxes },
-  { key: 'shipped', label: 'Handed to courier', icon: Truck },
-  { key: 'transit', label: 'In transit', icon: Route },
-  { key: 'delivered', label: 'Delivered', icon: House },
+const ROUTE: { key: string; label: string; icon: LucideIcon; status: OrderStatus }[] = [
+  { key: 'placed', label: 'Order placed', icon: ClipboardList, status: 'PENDING' },
+  { key: 'processing', label: 'Processing', icon: Boxes, status: 'PROCESSING' },
+  { key: 'shipped', label: 'Handed to courier', icon: Truck, status: 'SHIPPED' },
+  { key: 'transit', label: 'In transit', icon: Route, status: 'IN_TRANSIT' },
+  { key: 'delivered', label: 'Delivered', icon: House, status: 'DELIVERED' },
 ];
 
 const ROUTE_INDEX: Partial<Record<OrderStatus, number>> = {
@@ -31,19 +32,27 @@ const ROUTE_INDEX: Partial<Record<OrderStatus, number>> = {
   DELIVERED: 4,
 };
 
-const NOT_RECORDED = 'Time not recorded yet';
+// Shown only if a step has no event, which shouldn't happen for orders created since events exist.
+const NOT_RECORDED = 'Time not recorded';
 
-// Stages are derived from the current status only. Each status change will be recorded as an
-// event later; until then only "placed" (createdAt) and the current stage (updatedAt) have real times.
-export function buildStages(order: Order): Stage[] {
-  const placedTime = formatDateTime(order.createdAt);
-  const currentTime = formatDateTime(order.updatedAt);
+// The stages come from the current status; their times come from the order's events.
+// After a retry a status can appear twice: the latest event is the one that counts.
+export function buildStages(order: Order, events: readonly OrderEvent[]): Stage[] {
+  const latest = (status: OrderStatus) => events.findLast((event) => event.toStatus === status);
+
+  const timed = (status: OrderStatus): Pick<Stage, 'time' | 'dateTime' | 'detail'> => {
+    const event = latest(status);
+    if (!event) return { time: NOT_RECORDED };
+    return {
+      time: formatDateTime(event.createdAt),
+      dateTime: event.createdAt,
+      ...(event.source === 'provider' && { detail: event.message }),
+    };
+  };
+
   const routeStage = (index: number, state: StageState): Stage => {
-    const step = ROUTE[index]!;
-    const time =
-      state === 'upcoming' ? 'Upcoming' : index === 0 ? placedTime : state === 'current' ? currentTime : NOT_RECORDED;
-    const dateTime = state === 'upcoming' ? undefined : index === 0 ? order.createdAt : state === 'current' ? order.updatedAt : undefined;
-    return { ...step, state, tone: 'default', time, dateTime };
+    const { status, ...step } = ROUTE[index]!;
+    return { ...step, state, tone: 'default', ...(state === 'upcoming' ? { time: 'Upcoming' } : timed(status)) };
   };
 
   const index = ROUTE_INDEX[order.status];
@@ -57,8 +66,7 @@ export function buildStages(order: Order): Stage[] {
     icon,
     state: 'current',
     tone,
-    time: currentTime,
-    dateTime: order.updatedAt,
+    ...timed(order.status),
   });
 
   switch (order.status) {
@@ -67,10 +75,8 @@ export function buildStages(order: Order): Stage[] {
     case 'FAILED': {
       // A courier on the order means it was handed over before it failed.
       const reached = order.courierProvider ? 3 : 2;
-      return [
-        ...ROUTE.slice(0, reached).map((_, i) => routeStage(i, 'done')),
-        ending('failed', 'Delivery failed', CircleX, 'danger'),
-      ];
+      const label = order.courierProvider ? 'Delivery failed' : 'Shipping failed';
+      return [...ROUTE.slice(0, reached).map((_, i) => routeStage(i, 'done')), ending('failed', label, CircleX, 'danger')];
     }
     case 'CANCELLED':
       return [routeStage(0, 'done'), ending('cancelled', 'Cancelled', Ban, 'muted')];
@@ -85,3 +91,10 @@ export function routeProgress(status: OrderStatus): number | null {
   if (index !== undefined) return (index + 1) / ROUTE.length;
   return status === 'RETURNED' ? 1 : null;
 }
+
+export const SOURCE_LABELS: Record<OrderEvent['source'], string> = {
+  api: 'LogiFlow',
+  provider: 'Courier',
+  webhook: 'Courier update',
+  system: 'System',
+};

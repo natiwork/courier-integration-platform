@@ -1,10 +1,17 @@
+import { formatDateTime } from '../../lib/format';
 import { STATUS_LABELS } from '../../lib/labels';
-import { buildStages, routeProgress } from '../../lib/shipmentStages';
-import type { Order } from '../../types/order';
+import { buildStages, routeProgress, SOURCE_LABELS } from '../../lib/shipmentStages';
+import type { Order, OrderEvent } from '../../types/order';
 import styles from './ShipmentTimeline.module.css';
 
-export function ShipmentTimeline({ order }: { order: Order }) {
-  const stages = buildStages(order);
+interface ShipmentTimelineProps {
+  order: Order;
+  // The order's recorded history, oldest first.
+  events: OrderEvent[];
+}
+
+export function ShipmentTimeline({ order, events }: ShipmentTimelineProps) {
+  const stages = buildStages(order, events);
   const progress = routeProgress(order.status);
 
   return (
@@ -29,7 +36,7 @@ export function ShipmentTimeline({ order }: { order: Order }) {
       </div>
 
       <ol className={styles.stages}>
-        {stages.map(({ key, label, icon: Icon, state, tone, time, dateTime }) => (
+        {stages.map(({ key, label, icon: Icon, state, tone, time, dateTime, detail }) => (
           <li
             key={key}
             // Not every tone has a class ("default" has none), so missing ones are dropped instead of printing "undefined".
@@ -53,14 +60,40 @@ export function ShipmentTimeline({ order }: { order: Order }) {
               ) : (
                 <span className={styles.time}>{time}</span>
               )}
+              {detail && <span className={styles.detail}>{detail}</span>}
             </span>
           </li>
         ))}
       </ol>
 
-      <p className={styles.note}>
-        Exact times for each step will appear once status changes are recorded as events.
-      </p>
+      {events.length > 0 && <OrderHistory events={events} />}
     </div>
+  );
+}
+
+// Every recorded step, including failed attempts before a retry. Collapsed by default: the stages above
+// answer "where is it now"; this answers "what exactly happened".
+function OrderHistory({ events }: { events: OrderEvent[] }) {
+  return (
+    <details className={styles.history}>
+      <summary className={styles.historySummary}>Full history ({events.length})</summary>
+      <ol className={styles.historyList}>
+        {[...events].reverse().map((event) => (
+          <li key={event.id} className={styles.historyItem}>
+            <time className={styles.time} dateTime={event.createdAt}>
+              {formatDateTime(event.createdAt)}
+            </time>
+            <span className={styles.historyTitle}>
+              {event.type === 'ORDER_CREATED' ? 'Order placed' : STATUS_LABELS[event.toStatus]}
+            </span>
+            <span className={styles.historyMessage}>{event.message}</span>
+            <span className={styles.historyMeta}>
+              From {SOURCE_LABELS[event.source]}
+              {event.code && <>, code {event.code}</>}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }

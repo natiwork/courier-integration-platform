@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ChevronLeft, MapPinned, ReceiptText, Route, UserRound } from 'lucide-react';
 import { ApiError } from '../api/client';
-import { getOrder } from '../api/orders';
+import { getOrder, getOrderEvents } from '../api/orders';
 import { Button, ButtonLink } from '../components/Button/Button';
 import { Card } from '../components/Card/Card';
 import { EmptyState } from '../components/EmptyState/EmptyState';
@@ -16,14 +16,15 @@ import { Skeleton } from '../components/Skeleton/Skeleton';
 import { StatusBadge } from '../components/StatusBadge/StatusBadge';
 import { SuccessBanner } from '../components/SuccessBanner/SuccessBanner';
 import { useCourierName } from '../context/couriersContext';
-import { useApi } from '../hooks/useApi';
+import { useApi, type ApiState } from '../hooks/useApi';
 import { countryName, formatDateTime, formatNumber } from '../lib/format';
-import type { Order } from '../types/order';
+import type { Order, OrderEvent } from '../types/order';
 import styles from './OrderDetailsPage.module.css';
 
 export function OrderDetailsPage() {
   const { orderId = '' } = useParams();
   const order = useApi((signal) => getOrder(orderId, signal), orderId);
+  const events = useApi((signal) => getOrderEvents(orderId, signal), orderId);
   const notFound = order.error instanceof ApiError && order.error.status === 404;
   const current = order.data?.id === orderId ? order.data : undefined;
 
@@ -89,18 +90,31 @@ export function OrderDetailsPage() {
           <Skeleton label="Loading route" lines={[{ height: '22rem' }]} />
         </div>
       ) : (
-        <OrderDetails order={current} />
+        <OrderDetails order={current} events={events} />
       )}
     </>
   );
 }
 
-function OrderDetails({ order }: { order: Order }) {
+function OrderDetails({ order, events }: { order: Order; events: ApiState<OrderEvent[]> }) {
   const courierName = useCourierName();
+  // Events of another order may still be on screen for a moment after navigating: only use matching ones.
+  const history = events.data?.every((event) => event.orderId === order.id) ? events.data : undefined;
   return (
     <div className={styles.grid}>
       <Card title="Shipment progress" icon={<Route size={18} />} className={styles.timeline}>
-        <ShipmentTimeline order={order} />
+        {events.status === 'error' ? (
+          <ErrorState
+            headingLevel={3}
+            title="The shipment history couldn't be loaded"
+            description={events.error?.message ?? 'Something went wrong.'}
+            onRetry={events.reload}
+          />
+        ) : history ? (
+          <ShipmentTimeline order={order} events={history} />
+        ) : (
+          <Skeleton label="Loading shipment history" lines={[{ height: '2rem', width: '50%' }, { height: '18rem' }]} />
+        )}
       </Card>
 
       <Card title="Route" subtitle="Schematic" icon={<MapPinned size={18} />} className={styles.route}>

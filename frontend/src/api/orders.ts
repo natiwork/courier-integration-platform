@@ -1,4 +1,4 @@
-import type { Order, OrderItem, OrderStatus, PaymentStatus } from '../types/order';
+import type { Order, OrderEvent, OrderItem, OrderStatus, PaymentStatus } from '../types/order';
 import { apiGet, apiPost } from './client';
 
 export interface OrderQuery {
@@ -18,6 +18,11 @@ export function listOrders(query: OrderQuery, signal?: AbortSignal): Promise<Ord
 
 export function getOrder(id: string, signal?: AbortSignal): Promise<Order> {
   return apiGet<Order>(`/api/orders/${encodeURIComponent(id)}`, signal);
+}
+
+// The order's history, oldest first.
+export function getOrderEvents(id: string, signal?: AbortSignal): Promise<OrderEvent[]> {
+  return apiGet<OrderEvent[]>(`/api/orders/${encodeURIComponent(id)}/events`, signal);
 }
 
 // The body of POST /api/orders. Totals and currency are computed by the server, never sent.

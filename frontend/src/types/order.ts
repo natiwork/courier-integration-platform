@@ -42,3 +42,20 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
+
+// Mirrors backend/src/domain/orderEvent.ts. One entry in an order's history.
+export type OrderEventType = 'ORDER_CREATED' | 'STATUS_CHANGED' | 'SHIPMENT_CREATED' | 'SHIPMENT_REJECTED' | 'PROVIDER_UNAVAILABLE';
+export type EventSource = 'api' | 'provider' | 'webhook' | 'system';
+
+export interface OrderEvent {
+  id: string;
+  orderId: string;
+  type: OrderEventType;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+  source: EventSource;
+  message: string;
+  providerId: string | null;
+  code: string | null;
+  createdAt: string;
+}

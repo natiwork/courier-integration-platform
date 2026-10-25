@@ -15,7 +15,7 @@ import { ShipmentTimeline } from '../components/ShipmentTimeline/ShipmentTimelin
 import { Skeleton } from '../components/Skeleton/Skeleton';
 import { StatusBadge } from '../components/StatusBadge/StatusBadge';
 import { TrendBadge } from '../components/TrendBadge/TrendBadge';
-import { ORDER_STATUSES, PAYMENT_STATUSES, type Order, type OrderStatus } from '../types/order';
+import { ORDER_STATUSES, PAYMENT_STATUSES, type Order, type OrderEvent, type OrderStatus } from '../types/order';
 import styles from './StyleguidePage.module.css';
 
 const DEMO_DELAY_MS = 1500;
@@ -70,6 +70,34 @@ function sampleCourier(status: 'up' | 'down'): Courier {
       note: 'Simulated check: mock provider, no external service is contacted.',
     },
   };
+}
+
+// A plausible history for each sample order, one hour per step.
+const SAMPLE_PATHS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['PENDING'],
+  PROCESSING: ['PENDING', 'PROCESSING'],
+  SHIPPED: ['PENDING', 'PROCESSING', 'SHIPPED'],
+  IN_TRANSIT: ['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT'],
+  DELIVERED: ['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED'],
+  FAILED: ['PENDING', 'PROCESSING', 'SHIPPED', 'FAILED'],
+  CANCELLED: ['PENDING', 'CANCELLED'],
+  RETURNED: ['PENDING', 'PROCESSING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'RETURNED'],
+};
+
+function sampleEvents(status: OrderStatus): OrderEvent[] {
+  const path = SAMPLE_PATHS[status];
+  return path.map((to, index) => ({
+    id: `sample-${status}-${index}`,
+    orderId: `sample-${status}`,
+    type: index === 0 ? 'ORDER_CREATED' : to === 'SHIPPED' ? 'SHIPMENT_CREATED' : 'STATUS_CHANGED',
+    fromStatus: index === 0 ? null : path[index - 1]!,
+    toStatus: to,
+    source: to === 'SHIPPED' ? 'provider' : 'api',
+    message: to === 'SHIPPED' ? 'Sample courier accepted the parcel, tracking number SAMPLE-1' : 'Sample step',
+    providerId: null,
+    code: null,
+    createdAt: new Date(Date.parse('2026-01-05T09:30:00.000Z') + index * 3_600_000).toISOString(),
+  }));
 }
 
 // Simulates a request so loading states can be seen.
@@ -200,7 +228,7 @@ function Specimens({ theme }: { theme: 'light' | 'dark' }) {
         <div className={styles.timelines}>
           {ORDER_STATUSES.map((status) => (
             <div key={status} className={styles.surface}>
-              <ShipmentTimeline order={sampleOrder(status)} />
+              <ShipmentTimeline order={sampleOrder(status)} events={sampleEvents(status)} />
             </div>
           ))}
         </div>

@@ -142,7 +142,51 @@
   color: var(--muted);
 }
 
-.note {
+/* What the courier answered, e.g. why it refused the parcel. */
+.detail {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.history {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.historySummary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.historyList {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-4);
+  border-left: 2px solid var(--border);
+  list-style: none;
+}
+
+.historyItem {
+  display: grid;
+  gap: 2px;
+}
+
+.historyTitle {
+  font-weight: 700;
+}
+
+.historyMessage {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.historyMeta {
   color: var(--muted);
   font-size: var(--text-xs);
 }
