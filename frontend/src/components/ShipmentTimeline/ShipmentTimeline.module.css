@@ -1,0 +1,148 @@
+.timeline {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.summary {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.currentStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.currentLabel {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.currentStatus strong {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1;
+}
+
+.progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--chart-track);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--chart);
+}
+
+.stages {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  color: var(--chart);
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.time {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* Done: calm. Current: raised and outlined. Upcoming: greyed out, dashed. */
+.done .icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.stage.current {
+  border-color: var(--chart);
+  border-width: 2px;
+  box-shadow: var(--shadow-card);
+}
+
+.current .icon {
+  background: var(--chart);
+  color: var(--surface);
+}
+
+.upcoming {
+  border-style: dashed;
+  background: transparent;
+}
+
+.upcoming .label,
+.upcoming .icon {
+  color: var(--muted);
+}
+
+.upcoming .icon {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+
+.stage.danger {
+  border-color: var(--danger);
+}
+
+.danger .icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.stage.violet {
+  border-color: var(--violet);
+}
+
+.violet .icon {
+  background: var(--violet-bg);
+  color: var(--violet);
+}
+
+.stage.muted {
+  border-color: var(--border-strong);
+}
+
+.muted .icon {
+  background: var(--neutral-bg);
+  color: var(--muted);
+}
+
+.note {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}

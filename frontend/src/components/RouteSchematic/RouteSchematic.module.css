@@ -1,0 +1,114 @@
+.route {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.canvas {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--tile-sand);
+}
+
+.canvas svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Decorative "streets": quiet lines, so the drawing reads as a diagram */
+.streets {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 6;
+  opacity: 0.7;
+}
+
+.pathPlanned {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.1 9;
+  opacity: 0.55;
+}
+
+.pathDone,
+.pathFailed {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pathDone {
+  stroke: var(--chart);
+}
+
+.pathFailed {
+  stroke: var(--danger);
+}
+
+.stop {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.destination {
+  fill: var(--text);
+}
+
+.marker {
+  fill: var(--chart);
+}
+
+.markerFailed {
+  fill: var(--danger);
+}
+
+.halo {
+  opacity: 0.25;
+}
+
+.badge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: 0.2em 0.7em;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: grid;
+  gap: 2px;
+}
+
+.legendTitle {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.legendValue {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.disclaimer {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
