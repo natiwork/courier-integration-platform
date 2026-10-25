@@ -6,6 +6,10 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const CURRENCY = 'EUR';
 
+// Tracking numbers of generated demo orders start with this. No courier ever issued them,
+// so they can't be looked up with one (see GET /api/orders/:id/tracking).
+export const DEMO_TRACKING_PREFIX = 'DEMO-';
+
 export interface OrderItem {
   sku: string;
   name: string;

@@ -19,6 +19,7 @@ export function createOrderRouter(
   router.get('/', validateQuery(ListOrdersQuerySchema), controller.list);
   router.get('/:id', controller.getById);
   router.get('/:id/events', controller.events);
+  router.get('/:id/tracking', controller.tracking);
   router.post('/', validateBody(CreateOrderSchema), controller.create);
   router.post('/:id/ship', validateBody(createShipOrderSchema(providerRegistry)), controller.ship);
 

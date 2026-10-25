@@ -3,7 +3,7 @@ import { computeTotalCents } from '../domain/money.js';
 import { createRandom } from '../lib/random.js';
 import { NORDCARGO_COUNTRIES, NORDCARGO_ID, NORDCARGO_MAX_WEIGHT_KG } from '../providers/nordCargo.js';
 import { SWIFTPARCEL_ID } from '../providers/swiftParcel.js';
-import { CURRENCY, type OrderItem, type PaymentStatus } from '../domain/order.js';
+import { CURRENCY, DEMO_TRACKING_PREFIX, type OrderItem, type PaymentStatus } from '../domain/order.js';
 import type { OrderEvent } from '../domain/orderEvent.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type { NewOrder } from '../repositories/orderRepository.js';
@@ -262,7 +262,7 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
       paymentStatus,
       status,
       courierProvider: courier?.id ?? null,
-      trackingNumber: courier ? `DEMO-${courier.code}-${String(100000 + index * 7919).slice(-6)}` : null,
+      trackingNumber: courier ? `${DEMO_TRACKING_PREFIX}${courier.code}-${String(100000 + index * 7919).slice(-6)}` : null,
       createdAt: new Date(createdMs).toISOString(),
       updatedAt: new Date(updatedMs).toISOString(),
     };

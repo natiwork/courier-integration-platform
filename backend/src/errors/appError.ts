@@ -63,3 +63,15 @@ export function providerUnavailable(providerName: string, detail: ProviderErrorD
     [detail],
   );
 }
+
+export function notShipped(orderNumber: string): AppError {
+  return new AppError('NOT_SHIPPED', `Order ${orderNumber} has not been handed to a courier yet`, 409);
+}
+
+export function demoShipment(orderNumber: string): AppError {
+  return new AppError(
+    'DEMO_SHIPMENT',
+    `Order ${orderNumber} is generated demo data: no courier has a record of its tracking number`,
+    409,
+  );
+}

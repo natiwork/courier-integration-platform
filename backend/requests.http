@@ -219,3 +219,6 @@ POST {{baseUrl}}/api/orders/{{noHouseNumber.response.body.data.id}}/ship
 Content-Type: application/json
 
 { "providerId": "nordcargo", "service": "standard" }
+
+### Ask the courier about the shipped order (200, read-only: the order is not changed)
+GET {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/tracking

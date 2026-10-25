@@ -43,7 +43,7 @@ export function createApp(options: AppOptions = {}): Express {
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
-  const shipmentService = new ShipmentService(orderService, providerRegistry);
+  const shipmentService = new ShipmentService(orderService, providerRegistry, options.now);
 
   const app = express();
   app.disable('x-powered-by');
