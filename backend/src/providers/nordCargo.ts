@@ -4,6 +4,7 @@ import {
   permanentError,
   success,
   transientError,
+  type CallOptions,
   type CourierProvider,
   type CreatedShipment,
   type ProviderCapabilities,
@@ -58,6 +59,9 @@ const TIMELINE: TimelineStep<NordCargoEventCode>[] = [
 ];
 
 const CALL_LATENCY: LatencyRange = [400, 1200];
+// Now and then NordCargo takes far longer than usual: longer than our timeout (PROVIDER_TIMEOUT_MS, 2 s by default).
+const SLOW_LATENCY: LatencyRange = [2500, 4000];
+export const NORDCARGO_SLOW_RESPONSE_RATE = 0.05;
 const PING_LATENCY: LatencyRange = [100, 300];
 export const NORDCARGO_TRANSIENT_FAILURE_RATE = 0.2; // share of calls answered with "try again later"
 export const NORDCARGO_PING_FAILURE_RATE = 0.1;
@@ -81,8 +85,8 @@ export class NordCargoProvider implements CourierProvider {
     this.store = new MockShipmentStore(TIMELINE, mapNordCargoStatus, options.now ?? (() => new Date()));
   }
 
-  async createShipment(input: ShipmentInput): Promise<ProviderResult<CreatedShipment>> {
-    const unavailable = await this.simulateCall();
+  async createShipment(input: ShipmentInput, options: CallOptions = {}): Promise<ProviderResult<CreatedShipment>> {
+    const unavailable = await this.simulateCall(options.signal);
     if (unavailable) return unavailable;
 
     const rejection = checkCapabilities(this.name, this.capabilities, input) ?? this.addressProblem(input.address);
@@ -90,14 +94,14 @@ export class NordCargoProvider implements CourierProvider {
     return this.store.add('NC-', this.options.random);
   }
 
-  async getShipmentStatus(trackingNumber: string): Promise<ProviderResult<ShipmentStatusReport>> {
-    const unavailable = await this.simulateCall();
+  async getShipmentStatus(trackingNumber: string, options: CallOptions = {}): Promise<ProviderResult<ShipmentStatusReport>> {
+    const unavailable = await this.simulateCall(options.signal);
     if (unavailable) return unavailable;
     return this.store.status(this.name, trackingNumber);
   }
 
-  async validateAddress(address: ShipmentAddress): Promise<ProviderResult<{ valid: true }>> {
-    const unavailable = await this.simulateCall();
+  async validateAddress(address: ShipmentAddress, options: CallOptions = {}): Promise<ProviderResult<{ valid: true }>> {
+    const unavailable = await this.simulateCall(options.signal);
     if (unavailable) return unavailable;
     return this.addressProblem(address) ?? success({ valid: true });
   }
@@ -117,10 +121,12 @@ export class NordCargoProvider implements CourierProvider {
     return null;
   }
 
-  // Waits like a slow network call, then sometimes answers "temporarily unavailable".
-  private async simulateCall(): Promise<ProviderResult<never> | null> {
-    const ms = latencyBetween(this.options.random, CALL_LATENCY);
-    if (this.options.simulateLatency !== false) await sleep(ms);
+  // Waits like a slow network call (sometimes a very slow one), then sometimes answers "temporarily unavailable".
+  // Draws three numbers per call, in this order: slow?, delay, available?
+  private async simulateCall(signal?: AbortSignal): Promise<ProviderResult<never> | null> {
+    const slow = this.options.random() < NORDCARGO_SLOW_RESPONSE_RATE;
+    const ms = latencyBetween(this.options.random, slow ? SLOW_LATENCY : CALL_LATENCY);
+    if (this.options.simulateLatency !== false) await sleep(ms, signal);
     if (this.options.random() < NORDCARGO_TRANSIENT_FAILURE_RATE) {
       return transientError('PROVIDER_UNAVAILABLE', 'NordCargo is temporarily unavailable, try again later');
     }

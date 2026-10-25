@@ -1,5 +1,6 @@
 import { SUPPORTED_COUNTRIES } from '../../src/domain/countries.js';
 import type {
+  CallOptions,
   CourierProvider,
   CreatedShipment,
   ProviderCapabilities,
@@ -29,19 +30,24 @@ export class FakeProvider implements CourierProvider {
     message: 'Fake Courier has no such shipment',
   };
   gate: Promise<void> | null = null;
+  // The signal of the last call, to check that a timeout really cancels the call.
+  lastSignal: AbortSignal | undefined;
 
   constructor(
     readonly id = 'fake',
     readonly name = 'Fake Courier',
   ) {}
 
-  async createShipment(input: ShipmentInput): Promise<ProviderResult<CreatedShipment>> {
+  async createShipment(input: ShipmentInput, options: CallOptions = {}): Promise<ProviderResult<CreatedShipment>> {
     this.calls.push(input);
+    this.lastSignal = options.signal;
     if (this.gate) await this.gate;
     return typeof this.next === 'function' ? this.next() : this.next;
   }
 
-  async getShipmentStatus(): Promise<ProviderResult<ShipmentStatusReport>> {
+  async getShipmentStatus(_trackingNumber: string, options: CallOptions = {}): Promise<ProviderResult<ShipmentStatusReport>> {
+    this.lastSignal = options.signal;
+    if (this.gate) await this.gate;
     return this.statusReport;
   }
 

@@ -73,12 +73,18 @@ export interface ProviderHealth {
   simulated: true; // all providers are mocks: no external service is contacted
 }
 
+// Passed to every network-style call. When the caller gives up (timeout), the signal is aborted and the
+// provider should stop: a real HTTP integration hands it to fetch(), the mocks stop their simulated delay.
+export interface CallOptions {
+  signal?: AbortSignal;
+}
+
 export interface CourierProvider {
   readonly id: string; // stable, stored on orders: "swiftparcel"
   readonly name: string; // shown in the UI: "SwiftParcel"
   readonly capabilities: ProviderCapabilities;
-  createShipment(input: ShipmentInput): Promise<ProviderResult<CreatedShipment>>;
-  getShipmentStatus(trackingNumber: string): Promise<ProviderResult<ShipmentStatusReport>>;
-  validateAddress?(address: ShipmentAddress): Promise<ProviderResult<{ valid: true }>>;
+  createShipment(input: ShipmentInput, options?: CallOptions): Promise<ProviderResult<CreatedShipment>>;
+  getShipmentStatus(trackingNumber: string, options?: CallOptions): Promise<ProviderResult<ShipmentStatusReport>>;
+  validateAddress?(address: ShipmentAddress, options?: CallOptions): Promise<ProviderResult<{ valid: true }>>;
   checkHealth(): Promise<ProviderHealth>;
 }

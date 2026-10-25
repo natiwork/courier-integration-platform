@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { withTimeout } from '../../src/lib/withTimeout.js';
 import { createRandom } from '../../src/lib/random.js';
 import { mapNordCargoStatus, NordCargoProvider } from '../../src/providers/nordCargo.js';
 import { scriptedRandom, shipmentInput } from '../fixtures/shipments.js';
@@ -6,7 +7,7 @@ import { scriptedRandom, shipmentInput } from '../fixtures/shipments.js';
 const CREATED = new Date('2026-10-24T08:00:00.000Z');
 const HOUR = 60 * 60 * 1000;
 
-// Every NordCargo call draws two numbers: the delay, then the "is it available?" roll (< 0.2 = unavailable).
+// Every NordCargo call draws three numbers: "slow?" (< 0.05 = slow), the delay, then "available?" (< 0.2 = unavailable).
 const AVAILABLE = 0.9;
 const UNAVAILABLE = 0.1;
 
@@ -50,7 +51,7 @@ describe('NordCargoProvider', () => {
   });
 
   it('sometimes answers with a transient error that is worth retrying', async () => {
-    const nord = provider(scriptedRandom(0.5, UNAVAILABLE, 0.5, AVAILABLE));
+    const nord = provider(scriptedRandom(0.9, 0.5, UNAVAILABLE, 0.9, 0.5, AVAILABLE));
 
     expect(await nord.createShipment(shipmentInput())).toEqual({
       kind: 'transient',
@@ -133,4 +134,30 @@ describe('NordCargoProvider', () => {
     expect(await provider(scriptedRandom(0.5, 0.05)).checkHealth()).toMatchObject({ status: 'down', simulated: true });
     expect(await provider(scriptedRandom(0.5, 0.5)).checkHealth()).toMatchObject({ status: 'up', simulated: true });
   });
+});
+
+describe('NordCargo response times against the 2 s timeout', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function timed(random: () => number) {
+    vi.useFakeTimers();
+    const nord = new NordCargoProvider({ random, now: () => CREATED });
+    const pending = withTimeout((signal) => nord.createShipment(shipmentInput(), { signal }), 2000);
+    await vi.advanceTimersByTimeAsync(2000);
+    return pending;
+  }
+
+  it('answers in time on its slowest normal call (1.2 s)', async () => {
+    // not slow (0.9), the longest normal delay (0.999… → 1200 ms), available (0.9)
+    expect((await timed(scriptedRandom(0.9, 0.9999, 0.9))).timedOut).toBe(false);
+  });
+
+  it('times out on a slow answer (2.5–4 s), and the abort stops its timer', async () => {
+    // slow (0.01 < 5%), the shortest slow delay (0 → 2500 ms)
+    expect(await timed(scriptedRandom(0.01, 0))).toEqual({ timedOut: true });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
 });

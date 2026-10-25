@@ -81,6 +81,10 @@ export function orderCancelled(orderNumber: string): AppError {
   return new AppError('ORDER_CANCELLED', `Order ${orderNumber} is cancelled`, 409);
 }
 
+export function providerTimeout(providerName: string, detail: ProviderErrorDetail, consequence: string): AppError {
+  return new AppError('PROVIDER_TIMEOUT', `${providerName} did not answer in time. ${consequence}`, 504, [detail]);
+}
+
 export function notShipped(orderNumber: string): AppError {
   return new AppError('NOT_SHIPPED', `Order ${orderNumber} has not been handed to a courier yet`, 409);
 }

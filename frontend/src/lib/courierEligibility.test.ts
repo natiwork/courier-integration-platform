@@ -51,6 +51,10 @@ describe('suggestCourier', () => {
     expect(suggestCourier(both, { type: 'PROVIDER_UNAVAILABLE', providerId: 'nordcargo' })).toEqual({ courier: nordCargo });
   });
 
+  it('offers the same courier again after a timeout', () => {
+    expect(suggestCourier(both, { type: 'PROVIDER_TIMEOUT', providerId: 'nordcargo' })).toEqual({ courier: nordCargo });
+  });
+
   it('suggests another courier, with a note, after a rejection', () => {
     expect(suggestCourier(both, { type: 'SHIPMENT_REJECTED', providerId: 'nordcargo' })).toEqual({
       courier: swiftParcel,

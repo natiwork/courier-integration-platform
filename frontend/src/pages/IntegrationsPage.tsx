@@ -1,4 +1,4 @@
-import { Cable, CircleCheck, CircleX, Clock3 } from 'lucide-react';
+import { Cable, CircleCheck, CircleX, Clock3, Hourglass } from 'lucide-react';
 import { getIntegrationActivity, type ProviderActivitySummary } from '../api/integrations';
 import { Button } from '../components/Button/Button';
 import { Card } from '../components/Card/Card';
@@ -82,6 +82,7 @@ function SummaryTile({ provider }: { provider: ProviderActivitySummary }) {
     { label: 'Accepted', value: provider.succeeded, icon: CircleCheck },
     { label: 'Rejected', value: provider.rejected, icon: CircleX },
     { label: 'Unavailable', value: provider.unavailable, icon: Clock3 },
+    { label: 'Timed out', value: provider.timedOut, icon: Hourglass },
   ];
   return (
     <li className={styles.tile}>

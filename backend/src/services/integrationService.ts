@@ -3,12 +3,13 @@ import type { ProviderRegistry } from '../providers/providerRegistry.js';
 import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
 
-export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable';
+export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable' | 'timedOut';
 
 const OUTCOMES: Partial<Record<OrderEventType, OperationOutcome>> = {
   SHIPMENT_CREATED: 'succeeded',
   SHIPMENT_REJECTED: 'rejected',
   PROVIDER_UNAVAILABLE: 'unavailable',
+  PROVIDER_TIMEOUT: 'timedOut',
 };
 
 export interface ProviderOperation {
@@ -29,6 +30,7 @@ export interface ProviderActivitySummary {
   succeeded: number;
   rejected: number;
   unavailable: number;
+  timedOut: number;
   lastOperationAt: string | null;
 }
 
@@ -61,6 +63,7 @@ export class IntegrationService {
         succeeded: count('succeeded'),
         rejected: count('rejected'),
         unavailable: count('unavailable'),
+        timedOut: count('timedOut'),
         lastOperationAt: own[0]?.createdAt ?? null, // newest first
       };
     });

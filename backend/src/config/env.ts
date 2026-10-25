@@ -5,6 +5,13 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   // "true" / "false"; when not set, demo data is on everywhere except production.
   SEED_DEMO_DATA: z.enum(['true', 'false'], 'SEED_DEMO_DATA must be "true" or "false"').optional(),
+  // How long one courier call may take. NordCargo usually answers in 0.4–1.2 s; its rare slow answers (2.5–4 s) time out.
+  PROVIDER_TIMEOUT_MS: z.coerce
+    .number('PROVIDER_TIMEOUT_MS must be a number of milliseconds')
+    .int('PROVIDER_TIMEOUT_MS must be a whole number of milliseconds')
+    .min(100, 'PROVIDER_TIMEOUT_MS must be at least 100')
+    .max(60_000, 'PROVIDER_TIMEOUT_MS must be at most 60000')
+    .default(2000),
   // Fixes the "random" behaviour of the mock couriers (delays, NordCargo outages). Unset = new every start.
   MOCK_PROVIDER_SEED: z
     .string()
@@ -18,6 +25,7 @@ export interface AppConfig {
   port: number;
   seedDemoData: boolean;
   mockProviderSeed: number | undefined;
+  providerTimeoutMs: number;
 }
 
 // Reads and checks environment variables once at startup. A bad value stops the server with a clear message.
@@ -27,11 +35,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
     throw new Error(`Invalid environment variables:\n${problems}`);
   }
-  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED } = result.data;
+  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED, PROVIDER_TIMEOUT_MS } = result.data;
   return {
     nodeEnv: NODE_ENV,
     port: PORT,
     seedDemoData: SEED_DEMO_DATA === undefined ? NODE_ENV !== 'production' : SEED_DEMO_DATA === 'true',
     mockProviderSeed: MOCK_PROVIDER_SEED,
+    providerTimeoutMs: PROVIDER_TIMEOUT_MS,
   };
 }

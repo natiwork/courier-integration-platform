@@ -71,7 +71,8 @@
   color: var(--danger);
 }
 
-.unavailable {
+.unavailable,
+.timedOut {
   background: var(--warning-bg);
   color: var(--warning);
 }

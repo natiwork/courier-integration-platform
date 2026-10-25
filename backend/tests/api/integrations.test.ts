@@ -46,8 +46,8 @@ describe('GET /api/integrations/activity', () => {
       orderId: second.id,
     });
     expect(res.body.data.summary).toEqual([
-      { providerId: 'fake', providerName: 'Fake Courier', succeeded: 1, rejected: 1, unavailable: 1, lastOperationAt: res.body.data.operations[0].createdAt },
-      { providerId: 'swiftparcel', providerName: 'SwiftParcel', succeeded: 0, rejected: 0, unavailable: 0, lastOperationAt: null },
+      { providerId: 'fake', providerName: 'Fake Courier', succeeded: 1, rejected: 1, unavailable: 1, timedOut: 0, lastOperationAt: res.body.data.operations[0].createdAt },
+      { providerId: 'swiftparcel', providerName: 'SwiftParcel', succeeded: 0, rejected: 0, unavailable: 0, timedOut: 0, lastOperationAt: null },
     ]);
   });
 

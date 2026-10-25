@@ -38,6 +38,12 @@ const providerSeed = config.mockProviderSeed ?? Date.now() % 2 ** 31;
 const providerRegistry = createProviderRegistry({ seed: providerSeed, simulateLatency: true });
 console.log(`Mock courier providers use seed ${providerSeed} (set MOCK_PROVIDER_SEED to repeat a run)`);
 
-createApp({ orderRepository, orderEventRepository, providerRegistry, demoData: config.seedDemoData }).listen(config.port, () => {
+createApp({
+  orderRepository,
+  orderEventRepository,
+  providerRegistry,
+  providerTimeoutMs: config.providerTimeoutMs,
+  demoData: config.seedDemoData,
+}).listen(config.port, () => {
   console.log(`Server listening on http://localhost:${config.port}`);
 });

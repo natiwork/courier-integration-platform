@@ -1,7 +1,7 @@
 import { apiGet } from './client';
 
 // Mirrors IntegrationActivity in backend/src/services/integrationService.ts — keep in sync.
-export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable';
+export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable' | 'timedOut';
 
 export interface ProviderOperation {
   id: string;
@@ -21,6 +21,7 @@ export interface ProviderActivitySummary {
   succeeded: number;
   rejected: number;
   unavailable: number;
+  timedOut: number;
   lastOperationAt: string | null;
 }
 

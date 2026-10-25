@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { CircleCheck, CircleX, Clock3 } from 'lucide-react';
+import { CircleCheck, CircleX, Clock3, Hourglass } from 'lucide-react';
 import type { OperationOutcome, ProviderOperation } from '../../api/integrations';
 import { formatDateTime } from '../../lib/format';
 import styles from './OperationsTable.module.css';
@@ -8,6 +8,7 @@ const OUTCOMES: Record<OperationOutcome, { label: string; icon: typeof CircleChe
   succeeded: { label: 'Accepted', icon: CircleCheck },
   rejected: { label: 'Rejected', icon: CircleX },
   unavailable: { label: 'Unavailable', icon: Clock3 },
+  timedOut: { label: 'Timed out', icon: Hourglass },
 };
 
 // Courier calls, newest first. A real <table> on wide containers, cards on narrow ones.

@@ -50,6 +50,7 @@ export type OrderEventType =
   | 'SHIPMENT_CREATED'
   | 'SHIPMENT_REJECTED'
   | 'PROVIDER_UNAVAILABLE'
+  | 'PROVIDER_TIMEOUT'
   | 'PAYMENT_RECORDED'; // fromStatus and toStatus are the same: not a status change
 export type EventSource = 'api' | 'provider' | 'webhook' | 'system';
 

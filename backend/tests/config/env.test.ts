@@ -8,7 +8,12 @@ describe('loadConfig', () => {
       port: 3000,
       seedDemoData: true,
       mockProviderSeed: undefined,
+      providerTimeoutMs: 2000,
     });
+  });
+
+  it('reads PROVIDER_TIMEOUT_MS as milliseconds', () => {
+    expect(loadConfig({ PROVIDER_TIMEOUT_MS: '1500' }).providerTimeoutMs).toBe(1500);
   });
 
   it('reads MOCK_PROVIDER_SEED as a number', () => {
@@ -33,6 +38,8 @@ describe('loadConfig', () => {
     [{ PORT: 'abc' }, 'PORT'],
     [{ NODE_ENV: 'staging' }, 'NODE_ENV'],
     [{ MOCK_PROVIDER_SEED: '' }, 'MOCK_PROVIDER_SEED'],
+    [{ PROVIDER_TIMEOUT_MS: '50' }, 'PROVIDER_TIMEOUT_MS'],
+    [{ PROVIDER_TIMEOUT_MS: 'soon' }, 'PROVIDER_TIMEOUT_MS'],
     [{ MOCK_PROVIDER_SEED: '1.5' }, 'MOCK_PROVIDER_SEED'],
     [{ MOCK_PROVIDER_SEED: '-3' }, 'MOCK_PROVIDER_SEED'],
   ])('stops with a clear message for %o', (env, name) => {

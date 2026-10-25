@@ -29,6 +29,8 @@ export interface AppOptions {
   orderEventRepository?: OrderEventRepository;
   // Defaults to the mock providers with a fixed seed and no simulated latency.
   providerRegistry?: ProviderRegistry;
+  // Deadline for each courier call. Defaults to DEFAULT_PROVIDER_TIMEOUT_MS (2 s).
+  providerTimeoutMs?: number;
   // True when the store was filled by the demo seed; reported by /api/stats/overview.
   demoData?: boolean;
   // Injectable clock for tests.
@@ -45,7 +47,7 @@ export function createApp(options: AppOptions = {}): Express {
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
-  const shipmentService = new ShipmentService(orderService, providerRegistry, options.now);
+  const shipmentService = new ShipmentService(orderService, providerRegistry, { now: options.now, timeoutMs: options.providerTimeoutMs });
   const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry);
 
   const app = express();

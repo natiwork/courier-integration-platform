@@ -1,6 +1,7 @@
 import { SUPPORTED_COUNTRIES } from '../domain/countries.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type {
+  CallOptions,
   CourierProvider,
   CreatedShipment,
   ProviderCapabilities,
@@ -82,15 +83,15 @@ export class SwiftParcelProvider implements CourierProvider {
     this.store = new MockShipmentStore(TIMELINE, mapSwiftParcelStatus, options.now ?? (() => new Date()));
   }
 
-  async createShipment(input: ShipmentInput): Promise<ProviderResult<CreatedShipment>> {
-    await this.simulateCall();
+  async createShipment(input: ShipmentInput, options: CallOptions = {}): Promise<ProviderResult<CreatedShipment>> {
+    await this.simulateCall(options.signal);
     const rejection = checkCapabilities(this.name, this.capabilities, input);
     if (rejection) return rejection;
     return this.store.add('SP', this.options.random);
   }
 
-  async getShipmentStatus(trackingNumber: string): Promise<ProviderResult<ShipmentStatusReport>> {
-    await this.simulateCall();
+  async getShipmentStatus(trackingNumber: string, options: CallOptions = {}): Promise<ProviderResult<ShipmentStatusReport>> {
+    await this.simulateCall(options.signal);
     return this.store.status(this.name, trackingNumber);
   }
 
@@ -98,8 +99,8 @@ export class SwiftParcelProvider implements CourierProvider {
     return simulatedHealthCheck(this.options, PING_LATENCY, 0);
   }
 
-  private async simulateCall(): Promise<void> {
+  private async simulateCall(signal?: AbortSignal): Promise<void> {
     const ms = latencyBetween(this.options.random, CALL_LATENCY);
-    if (this.options.simulateLatency !== false) await sleep(ms);
+    if (this.options.simulateLatency !== false) await sleep(ms, signal);
   }
 }

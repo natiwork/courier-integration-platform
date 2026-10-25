@@ -8,13 +8,19 @@ export const ORDER_EVENT_TYPES = [
   'SHIPMENT_CREATED', // the courier accepted the parcel
   'SHIPMENT_REJECTED', // the courier said no (permanent error)
   'PROVIDER_UNAVAILABLE', // the courier could not be reached or asked to try later (transient error)
+  'PROVIDER_TIMEOUT', // the courier didn't answer in time: the outcome is unknown
   'PAYMENT_RECORDED', // the shop recorded the payment; the status stays the same
 ] as const;
 
 export type OrderEventType = (typeof ORDER_EVENT_TYPES)[number];
 
 // Events that record a call to a courier: what the Integrations page lists.
-export const PROVIDER_EVENT_TYPES: readonly OrderEventType[] = ['SHIPMENT_CREATED', 'SHIPMENT_REJECTED', 'PROVIDER_UNAVAILABLE'];
+export const PROVIDER_EVENT_TYPES: readonly OrderEventType[] = [
+  'SHIPMENT_CREATED',
+  'SHIPMENT_REJECTED',
+  'PROVIDER_UNAVAILABLE',
+  'PROVIDER_TIMEOUT',
+];
 
 // Who caused the change: our API, a courier's answer, a courier's webhook (Phase 8) or the system itself.
 export type EventSource = 'api' | 'provider' | 'webhook' | 'system';

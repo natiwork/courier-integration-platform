@@ -9,18 +9,14 @@ import {
   notShipped,
   orderNotPaid,
   providerRejected,
+  providerTimeout,
   providerUnavailable,
   shipmentInProgress,
 } from '../errors/appError.js';
 import { checkCapabilities } from '../providers/capabilities.js';
-import type {
-  CourierProvider,
-  CreatedShipment,
-  ProviderResult,
-  ShipmentInput,
-  ShipmentStatusReport,
-} from '../providers/courierProvider.js';
+import type { CourierProvider, ProviderResult, ShipmentInput } from '../providers/courierProvider.js';
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
+import { withTimeout } from '../lib/withTimeout.js';
 import type { ShipOrderInput } from '../validation/shipmentSchemas.js';
 import type { OrderService } from './orderService.js';
 
@@ -35,19 +31,41 @@ export interface TrackingReport {
   checkedAt: string; // when we asked
 }
 
+// The courier didn't answer within PROVIDER_TIMEOUT_MS. Unlike the other outcomes, we don't know what happened:
+// the courier may or may not have created the shipment.
+interface TimedOut {
+  kind: 'timeout';
+  code: 'PROVIDER_TIMEOUT';
+  message: string;
+}
+type CallOutcome<T> = ProviderResult<T> | TimedOut;
+
+export const DEFAULT_PROVIDER_TIMEOUT_MS = 2000;
+
+export interface ShipmentServiceOptions {
+  now?: () => Date;
+  timeoutMs?: number; // per courier call
+}
+
 // Hands an order to a courier. Every status change goes through OrderService, so each step is recorded.
 //   PENDING (or FAILED, to try again) → PROCESSING → SHIPPED   courier accepted
-//                                                  → FAILED    courier refused (422) or unavailable (502)
+//                                                  → FAILED    courier refused (422), unavailable (502) or too slow (504)
 export class ShipmentService {
   // Orders with a ship request in flight. Two requests for the same order at the same time would both
   // see PENDING and call the courier twice; the second one is refused instead (Idempotency-Key in Phase 7).
   private readonly inFlight = new Set<string>();
 
+  private readonly now: () => Date;
+  private readonly timeoutMs: number;
+
   constructor(
     private readonly orders: OrderService,
     private readonly registry: ProviderRegistry,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
+    options: ShipmentServiceOptions = {},
+  ) {
+    this.now = options.now ?? (() => new Date());
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS;
+  }
 
   async ship(orderId: string, { providerId, service }: ShipOrderInput): Promise<Order> {
     // Checked and taken before the first await, so no other request can slip in between.
@@ -72,7 +90,8 @@ export class ShipmentService {
     if (order.trackingNumber.startsWith(DEMO_TRACKING_PREFIX)) throw demoShipment(order.orderNumber);
 
     const provider = this.registry.get(order.courierProvider);
-    const result = await callTracking(provider, order.trackingNumber);
+    const trackingNumber = order.trackingNumber;
+    const result = await this.call(provider, 'getShipmentStatus', (signal) => provider.getShipmentStatus(trackingNumber, { signal }));
     switch (result.kind) {
       case 'success':
         return {
@@ -88,6 +107,12 @@ export class ShipmentService {
         throw providerRejected(provider.name, { providerId: provider.id, code: result.code, message: result.message });
       case 'transient':
         throw providerUnavailable(
+          provider.name,
+          { providerId: provider.id, code: result.code, message: result.message },
+          'Nothing was changed; try again later.',
+        );
+      case 'timeout':
+        throw providerTimeout(
           provider.name,
           { providerId: provider.id, code: result.code, message: result.message },
           'Nothing was changed; try again later.',
@@ -119,7 +144,7 @@ export class ShipmentService {
       providerId: provider.id,
     });
 
-    const result = await callProvider(provider, input);
+    const result = await this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal }));
     switch (result.kind) {
       case 'success':
         return this.orders.changeStatus(orderId, 'SHIPPED', {
@@ -153,6 +178,41 @@ export class ShipmentService {
           'The order was marked as failed; you can try again.',
         );
       }
+      case 'timeout': {
+        // Not retried automatically: without an answer we can't know whether the courier created the shipment.
+        await this.orders.changeStatus(orderId, 'FAILED', {
+          type: 'PROVIDER_TIMEOUT',
+          source: 'provider',
+          message: `${provider.name} did not answer in time: ${result.message}`,
+          providerId: provider.id,
+          code: result.code,
+        });
+        throw providerTimeout(
+          provider.name,
+          { providerId: provider.id, code: result.code, message: result.message },
+          'The order was marked as failed. Check with the courier before trying again.',
+        );
+      }
+    }
+  }
+
+  // One courier call with a deadline. A provider should answer with a ProviderResult, but a real integration
+  // can still throw (a bug, a bad response): that counts as "unavailable", so the order ends up FAILED
+  // instead of stuck in PROCESSING.
+  private async call<T>(
+    provider: CourierProvider,
+    operation: string,
+    run: (signal: AbortSignal) => Promise<ProviderResult<T>>,
+  ): Promise<CallOutcome<T>> {
+    try {
+      const outcome = await withTimeout(run, this.timeoutMs);
+      if (outcome.timedOut) {
+        return { kind: 'timeout', code: 'PROVIDER_TIMEOUT', message: `No answer within ${this.timeoutMs} ms` };
+      }
+      return outcome.value;
+    } catch (error) {
+      console.error(`[${provider.id}] ${operation} threw:`, error);
+      return { kind: 'transient', code: 'PROVIDER_ERROR', message: 'The courier returned an unexpected error' };
     }
   }
 }
@@ -171,24 +231,4 @@ function shipmentInputFor(order: Order, service: string): ShipmentInput {
     parcelWeightKg: order.parcelWeightKg,
     service,
   };
-}
-
-// A provider should answer with a ProviderResult, but a real integration can still throw (a bug, a bad
-// response). Treated as "unavailable", so the order ends up FAILED instead of stuck in PROCESSING.
-async function callProvider(provider: CourierProvider, input: ShipmentInput): Promise<ProviderResult<CreatedShipment>> {
-  try {
-    return await provider.createShipment(input);
-  } catch (error) {
-    console.error(`[${provider.id}] createShipment threw:`, error);
-    return { kind: 'transient', code: 'PROVIDER_ERROR', message: 'The courier returned an unexpected error' };
-  }
-}
-
-async function callTracking(provider: CourierProvider, trackingNumber: string): Promise<ProviderResult<ShipmentStatusReport>> {
-  try {
-    return await provider.getShipmentStatus(trackingNumber);
-  } catch (error) {
-    console.error(`[${provider.id}] getShipmentStatus threw:`, error);
-    return { kind: 'transient', code: 'PROVIDER_ERROR', message: 'The courier returned an unexpected error' };
-  }
 }

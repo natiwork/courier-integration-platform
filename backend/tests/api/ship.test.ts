@@ -170,8 +170,8 @@ describe('POST /api/orders/:id/ship', () => {
 
   it('turns a temporary courier failure into 502 PROVIDER_UNAVAILABLE, a FAILED order and an event', async () => {
     const providerRegistry = new ProviderRegistry();
-    // Delay roll, then the availability roll: 0.1 is below NordCargo's 20% failure rate.
-    providerRegistry.register(new NordCargoProvider({ random: scriptedRandom(0.5, 0.1), simulateLatency: false }));
+    // Not slow, a delay, then the availability roll: 0.1 is below NordCargo's 20% failure rate.
+    providerRegistry.register(new NordCargoProvider({ random: scriptedRandom(0.9, 0.5, 0.1), simulateLatency: false }));
     const app = createApp({ providerRegistry });
     const id = (await request(app).post('/api/orders').send(berlinOrder).expect(201)).body.data.id;
 

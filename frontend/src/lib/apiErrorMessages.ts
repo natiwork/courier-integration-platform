@@ -49,6 +49,11 @@ export function shipErrorMessage(error: unknown): ErrorMessage {
           title: 'The courier is temporarily unavailable',
           text: 'The order is marked as failed. Nothing was shipped, so you can safely try again.',
         };
+      case 'PROVIDER_TIMEOUT':
+        return {
+          title: "The courier didn't answer in time",
+          text: 'The order is marked as failed. The courier may still have received it, so check with them before shipping again.',
+        };
       default:
         return { title: FALLBACK.title, text: error.message };
     }
@@ -76,6 +81,8 @@ export function trackingErrorMessage(error: unknown): ErrorMessage {
           : { title: 'The courier refused the request', text: courierText(error) };
       case 'PROVIDER_UNAVAILABLE':
         return { title: 'The courier is temporarily unavailable', text: 'Nothing was changed. Try again in a moment.' };
+      case 'PROVIDER_TIMEOUT':
+        return { title: "The courier didn't answer in time", text: 'Nothing was changed. Try again in a moment.' };
       default:
         return { title: FALLBACK.title, text: error.message };
     }
