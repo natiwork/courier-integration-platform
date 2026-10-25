@@ -1,0 +1,157 @@
+.wrapper {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.table {
+  width: 100%;
+  font-size: var(--text-sm);
+  transition: opacity var(--duration-base) ease;
+}
+
+.busy {
+  opacity: 0.55;
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table thead th:first-child {
+  border-radius: var(--radius-m) 0 0 var(--radius-m);
+}
+
+.table thead th:last-child {
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+}
+
+.table tbody tr + tr > * {
+  border-top: 1px solid var(--border);
+}
+
+.time,
+.courier {
+  white-space: nowrap;
+}
+
+.courier {
+  font-weight: 700;
+}
+
+/* Outcome: icon and word, never colour alone. */
+.outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.2em 0.7em 0.2em 0.5em;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.succeeded {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.rejected {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.unavailable {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.orderLink {
+  color: var(--link);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.message {
+  max-width: 42rem;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.code {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Narrow containers: each call becomes a small card. `.table td` rules need `.table` to win over the above. */
+@container (max-width: 680px) {
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table,
+  .table tbody {
+    display: block;
+  }
+
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-4) 0;
+  }
+
+  .table tbody tr + tr {
+    border-top: 1px solid var(--border);
+  }
+
+  .table tbody tr + tr > * {
+    border-top: 0;
+  }
+
+  .table td {
+    display: block;
+    grid-column: 1 / -1;
+    padding: 0;
+  }
+
+  /* Courier and result on the first line, then time, order and the answer. */
+  .table td.courier {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: var(--text-base);
+  }
+
+  .table td[data-label='Result'] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .table td[data-label='Order']::before,
+  .table td[data-label='Time']::before {
+    content: attr(data-label) ': ';
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+}

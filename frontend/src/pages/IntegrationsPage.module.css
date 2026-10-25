@@ -1,0 +1,94 @@
+.layout {
+  display: grid;
+  gap: var(--grid-gap);
+  transition: opacity 0.2s;
+}
+
+.layout[data-stale] {
+  opacity: 0.7;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--grid-gap);
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--card-padding);
+  border: var(--card-border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.tileTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: var(--leading-display);
+  letter-spacing: 0;
+}
+
+.counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.count {
+  display: grid;
+  align-content: space-between; /* numbers line up even when a label wraps */
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+}
+
+.count dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.count dt svg {
+  flex-shrink: 0;
+}
+
+.count dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-kpi);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.last {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* Phones: three counts side by side still fit if the tiles are tighter. */
+@media (max-width: 479px) {
+  .counts {
+    gap: var(--space-2);
+  }
+
+  .count {
+    padding: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout {
+    transition: none;
+  }
+}
