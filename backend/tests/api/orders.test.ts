@@ -248,3 +248,21 @@ describe('Orders API', () => {
     });
   });
 });
+
+describe('GET /api/orders/:id/events', () => {
+  it('returns the order history, oldest first', async () => {
+    const app = createApp();
+    const created = await request(app).post('/api/orders').send(validOrder).expect(201);
+
+    const res = await request(app).get(`/api/orders/${created.body.data.id}/events`).expect(200);
+
+    expect(res.body.data).toEqual([
+      expect.objectContaining({ type: 'ORDER_CREATED', fromStatus: null, toStatus: 'PENDING', source: 'api' }),
+    ]);
+  });
+
+  it('returns 404 ORDER_NOT_FOUND for an unknown order', async () => {
+    const res = await request(createApp()).get('/api/orders/does-not-exist/events').expect(404);
+    expect(res.body.error.code).toBe('ORDER_NOT_FOUND');
+  });
+});

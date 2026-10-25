@@ -11,6 +11,7 @@ export function createOrderRouter(orderService: OrderService): Router {
 
   router.get('/', validateQuery(ListOrdersQuerySchema), controller.list);
   router.get('/:id', controller.getById);
+  router.get('/:id/events', controller.events);
   router.post('/', validateBody(CreateOrderSchema), controller.create);
 
   return router;

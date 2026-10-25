@@ -22,5 +22,10 @@ export function createOrderController(orderService: OrderService) {
     res.status(201).location(`/api/orders/${order.id}`).json({ data: order });
   };
 
-  return { list, getById, create };
+  const events: RequestHandler<{ id: string }> = async (req, res) => {
+    const history = await orderService.listEvents(req.params.id);
+    res.status(200).json({ data: history });
+  };
+
+  return { list, getById, create, events };
 }

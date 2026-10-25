@@ -4,6 +4,8 @@ import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
 import { createProviderRegistry } from './providers/index.js';
 import type { ProviderRegistry } from './providers/providerRegistry.js';
+import { InMemoryOrderEventRepository } from './repositories/inMemoryOrderEventRepository.js';
+import type { OrderEventRepository } from './repositories/orderEventRepository.js';
 import type { OrderRepository } from './repositories/orderRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
 import { createCourierRouter } from './routes/courierRoutes.js';
@@ -20,6 +22,8 @@ const TEST_PROVIDER_SEED = 1;
 export interface AppOptions {
   // Defaults to a fresh in-memory store, so every createApp() call starts empty.
   orderRepository?: OrderRepository;
+  // Defaults to a fresh in-memory event log. Pass the one the orders were seeded with.
+  orderEventRepository?: OrderEventRepository;
   // Defaults to the mock providers with a fixed seed and no simulated latency.
   providerRegistry?: ProviderRegistry;
   // True when the store was filled by the demo seed; reported by /api/stats/overview.
@@ -31,7 +35,8 @@ export interface AppOptions {
 // Builds the Express app without starting it, so tests can use it without opening a port.
 export function createApp(options: AppOptions = {}): Express {
   const orderRepository = options.orderRepository ?? new InMemoryOrderRepository();
-  const orderService = new OrderService(orderRepository, options.now);
+  const orderEventRepository = options.orderEventRepository ?? new InMemoryOrderEventRepository();
+  const orderService = new OrderService(orderRepository, orderEventRepository, options.now);
   const statsService = new StatsService(orderRepository, { now: options.now, demoData: options.demoData });
   const providerRegistry =
     options.providerRegistry ??
