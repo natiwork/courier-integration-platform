@@ -12,7 +12,16 @@ describe('loadConfig', () => {
       logLevel: 'info',
       webhookSecrets: { swiftparcel: undefined, nordcargo: undefined },
       webhookSimulator: true,
+      databaseUrl: undefined,
     });
+  });
+
+  it('reads DATABASE_URL and never repeats a bad value (it contains the password)', () => {
+    const url = 'postgres://courier:secret-password@localhost:5432/courier_dev';
+    expect(loadConfig({ DATABASE_URL: url }).databaseUrl).toBe(url);
+    expect(loadConfig({ DATABASE_URL: '' }).databaseUrl).toBeUndefined();
+    expect(() => loadConfig({ DATABASE_URL: 'mysql://root:secret-password@db' })).toThrow(/DATABASE_URL must start with postgres:\/\//);
+    expect(() => loadConfig({ DATABASE_URL: 'mysql://root:secret-password@db' })).not.toThrow(/secret-password/);
   });
 
   it('turns the webhook simulator off in production unless asked for', () => {

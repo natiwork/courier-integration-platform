@@ -34,6 +34,11 @@ const EnvSchema = z.object({
     .regex(/^\d{1,9}$/, 'MOCK_PROVIDER_SEED must be a whole number (up to 9 digits)')
     .transform(Number)
     .optional(),
+  // postgres://user:password@host:port/database. Needed for npm run db:migrate and STORAGE=postgres.
+  DATABASE_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().regex(/^postgres(ql)?:\/\/\S+$/, 'DATABASE_URL must start with postgres://').optional(),
+  ),
 });
 
 export interface AppConfig {
@@ -45,6 +50,7 @@ export interface AppConfig {
   logLevel: LogLevel;
   webhookSecrets: Record<string, string | undefined>; // by provider id
   webhookSimulator: boolean;
+  databaseUrl: string | undefined;
 }
 
 // Reads and checks environment variables once at startup. A bad value stops the server with a clear message.
@@ -64,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     WEBHOOK_SECRET_SWIFTPARCEL,
     WEBHOOK_SECRET_NORDCARGO,
     WEBHOOK_SIMULATOR,
+    DATABASE_URL,
   } = result.data;
   return {
     nodeEnv: NODE_ENV,
@@ -74,5 +81,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     logLevel: LOG_LEVEL ?? (NODE_ENV === 'test' ? 'silent' : 'info'),
     webhookSecrets: { swiftparcel: WEBHOOK_SECRET_SWIFTPARCEL, nordcargo: WEBHOOK_SECRET_NORDCARGO },
     webhookSimulator: WEBHOOK_SIMULATOR === undefined ? NODE_ENV !== 'production' : WEBHOOK_SIMULATOR === 'true',
+    databaseUrl: DATABASE_URL,
   };
 }
