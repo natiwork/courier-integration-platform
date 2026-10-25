@@ -12,6 +12,9 @@ export const ORDER_EVENT_TYPES = [
 
 export type OrderEventType = (typeof ORDER_EVENT_TYPES)[number];
 
+// Events that record a call to a courier: what the Integrations page lists.
+export const PROVIDER_EVENT_TYPES: readonly OrderEventType[] = ['SHIPMENT_CREATED', 'SHIPMENT_REJECTED', 'PROVIDER_UNAVAILABLE'];
+
 // Who caused the change: our API, a courier's answer, a courier's webhook (Phase 8) or the system itself.
 export type EventSource = 'api' | 'provider' | 'webhook' | 'system';
 

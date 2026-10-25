@@ -222,3 +222,6 @@ Content-Type: application/json
 
 ### Ask the courier about the shipped order (200, read-only: the order is not changed)
 GET {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/tracking
+
+### Recent courier calls and a summary per courier (200). Empty until an order is shipped in this run.
+GET {{baseUrl}}/api/integrations/activity

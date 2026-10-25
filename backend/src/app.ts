@@ -9,10 +9,12 @@ import type { OrderEventRepository } from './repositories/orderEventRepository.j
 import type { OrderRepository } from './repositories/orderRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
 import { createCourierRouter } from './routes/courierRoutes.js';
+import { createIntegrationRouter } from './routes/integrationRoutes.js';
 import { createMetaRouter } from './routes/metaRoutes.js';
 import { createOrderRouter } from './routes/orderRoutes.js';
 import { createStatsRouter } from './routes/statsRoutes.js';
 import { CourierService } from './services/courierService.js';
+import { IntegrationService } from './services/integrationService.js';
 import { OrderService } from './services/orderService.js';
 import { ShipmentService } from './services/shipmentService.js';
 import { StatsService } from './services/statsService.js';
@@ -44,6 +46,7 @@ export function createApp(options: AppOptions = {}): Express {
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
   const shipmentService = new ShipmentService(orderService, providerRegistry, options.now);
+  const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry);
 
   const app = express();
   app.disable('x-powered-by');
@@ -64,6 +67,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/stats', createStatsRouter(statsService));
   app.use('/api/meta', createMetaRouter());
   app.use('/api/couriers', createCourierRouter(courierService));
+  app.use('/api/integrations', createIntegrationRouter(integrationService));
 
   // Must come after all routes.
   app.use(notFound);
