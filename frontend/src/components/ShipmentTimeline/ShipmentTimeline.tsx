@@ -32,7 +32,8 @@ export function ShipmentTimeline({ order }: { order: Order }) {
         {stages.map(({ key, label, icon: Icon, state, tone, time, dateTime }) => (
           <li
             key={key}
-            className={`${styles.stage} ${styles[state]} ${styles[tone]}`}
+            // Not every tone has a class ("default" has none), so missing ones are dropped instead of printing "undefined".
+            className={[styles.stage, styles[state], styles[tone]].filter(Boolean).join(' ')}
             aria-current={state === 'current' ? 'step' : undefined}
           >
             <span className={styles.icon} aria-hidden="true">
