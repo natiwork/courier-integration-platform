@@ -1,4 +1,4 @@
-import { Cable, CircleCheck, CircleX, Clock3, Hourglass } from 'lucide-react';
+import { Cable, CircleCheck, CircleX, Clock3, Hourglass, RadioTower } from 'lucide-react';
 import { getIntegrationActivity, type ProviderActivitySummary } from '../api/integrations';
 import { Button } from '../components/Button/Button';
 import { Card } from '../components/Card/Card';
@@ -6,9 +6,11 @@ import { EmptyState } from '../components/EmptyState/EmptyState';
 import { ErrorState } from '../components/ErrorState/ErrorState';
 import { OperationsTable } from '../components/OperationsTable/OperationsTable';
 import { PageHeader } from '../components/PageHeader/PageHeader';
+import { WebhooksTable } from '../components/WebhooksTable/WebhooksTable';
 import { Skeleton } from '../components/Skeleton/Skeleton';
 import { useApi } from '../hooks/useApi';
 import { formatDateTime, formatNumber } from '../lib/format';
+import { summarizeWebhooks } from '../lib/webhookOutcomes';
 import styles from './IntegrationsPage.module.css';
 
 export function IntegrationsPage() {
@@ -19,7 +21,7 @@ export function IntegrationsPage() {
     <>
       <PageHeader
         title="Integrations"
-        description="Calls this server made to the courier providers, from the order history. The couriers are mocks, but every call listed here really happened."
+        description="Calls this server made to the courier providers, and the webhooks they sent back. The couriers are mocks and the webhooks come from our simulator, but every call listed here really happened and every signature was really checked."
         actions={
           activity.data && (
             <Button variant="secondary" onClick={activity.reload} loading={refreshing}>
@@ -69,6 +71,26 @@ export function IntegrationsPage() {
               />
             ) : (
               <OperationsTable operations={activity.data.operations} busy={refreshing} />
+            )}
+          </Card>
+
+          <Card title="Incoming webhooks" subtitle="Sent by our simulator, checked for real" icon={<RadioTower size={18} />}>
+            <ul role="list" className={styles.webhookSummary}>
+              {activity.data.webhooks.summary.map((provider) => (
+                <li key={provider.providerId}>
+                  <strong>{provider.providerName}:</strong> {summarizeWebhooks(provider.counts)}
+                </li>
+              ))}
+            </ul>
+            {activity.data.webhooks.recent.length === 0 ? (
+              <EmptyState
+                headingLevel={3}
+                icon={<RadioTower size={28} />}
+                title="No webhooks received yet"
+                description="Send one from a shipped order (Simulate a courier update) or with npm run simulate:webhook in the backend folder."
+              />
+            ) : (
+              <WebhooksTable webhooks={activity.data.webhooks.recent} busy={refreshing} />
             )}
           </Card>
         </div>

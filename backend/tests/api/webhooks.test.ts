@@ -237,3 +237,28 @@ describe('POST /api/webhooks/:providerId', () => {
     expect(stats.today.activity).toMatchObject({ IN_TRANSIT: 1, CANCELLED: 0, DELIVERED: 0 });
   });
 });
+
+describe('incoming webhooks on GET /api/integrations/activity', () => {
+  it('lists every webhook received, newest first, with its outcome, and counts them per courier', async () => {
+    const t = setup();
+    const id = await t.order({});
+    await t.send('swiftparcel', { trackingNumber: 'SP0000000001', externalStatus: 'in_transit', eventId: 'evt_1' }).expect(200);
+    await t.send('swiftparcel', { trackingNumber: 'SP0000000001', externalStatus: 'in_transit', eventId: 'evt_1' }).expect(200);
+    await t.send('swiftparcel', { trackingNumber: 'SP0000000001', externalStatus: 'delivered' }, { secret: 'wrong'.padEnd(64, 'w') }).expect(401);
+
+    const { webhooks } = (await request(t.app).get('/api/integrations/activity').expect(200)).body.data;
+
+    expect(webhooks.recent.map((w: { outcome: string }) => w.outcome)).toEqual(['invalid_signature', 'duplicate', 'accepted']);
+    expect(webhooks.recent[2]).toMatchObject({
+      providerName: 'SwiftParcel',
+      eventId: 'evt_1',
+      externalStatus: 'in_transit',
+      status: 'IN_TRANSIT',
+      orderId: id,
+      orderNumber: 'ORD-1001',
+      requestId: expect.any(String),
+    });
+    expect(webhooks.summary[0]).toMatchObject({ providerId: 'swiftparcel', counts: { accepted: 1, duplicate: 1, invalid_signature: 1, stale: 0 } });
+    expect(webhooks.summary[1]).toMatchObject({ providerId: 'nordcargo', lastReceivedAt: null });
+  });
+});

@@ -84,7 +84,7 @@ export function createApp(options: AppOptions = {}): Express {
     webhookLog,
     options.now,
   );
-  const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry);
+  const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry, webhookLog);
 
   const app = express();
   app.disable('x-powered-by');

@@ -2,6 +2,7 @@ import { PROVIDER_EVENT_TYPES, type OrderEvent, type OrderEventType } from '../d
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
 import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
+import type { InMemoryWebhookLog, WebhookOutcome, WebhookReceipt } from '../webhooks/webhookLog.js';
 
 export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable' | 'timedOut';
 
@@ -35,10 +36,36 @@ export interface ProviderActivitySummary {
   lastOperationAt: string | null;
 }
 
-export interface IntegrationActivity {
-  summary: ProviderActivitySummary[];
-  operations: ProviderOperation[];
+export interface IncomingWebhook extends WebhookReceipt {
+  providerName: string;
+  orderNumber: string | null;
 }
+
+export interface WebhookSummary {
+  providerId: string;
+  providerName: string;
+  counts: Record<WebhookOutcome, number>;
+  lastReceivedAt: string | null;
+}
+
+export interface IntegrationActivity {
+  summary: ProviderActivitySummary[]; // outgoing: our calls to couriers
+  operations: ProviderOperation[];
+  webhooks: { summary: WebhookSummary[]; recent: IncomingWebhook[] }; // incoming: couriers calling us
+}
+
+const WEBHOOK_OUTCOMES: readonly WebhookOutcome[] = [
+  'accepted',
+  'duplicate',
+  'unchanged',
+  'ignored_transition',
+  'unmapped_status',
+  'unknown_tracking',
+  'invalid_signature',
+  'stale',
+  'invalid_payload',
+  'not_configured',
+];
 
 const RECENT_LIMIT = 50;
 
@@ -49,6 +76,7 @@ export class IntegrationService {
     private readonly events: OrderEventRepository,
     private readonly orders: OrderRepository,
     private readonly registry: ProviderRegistry,
+    private readonly webhookLog: InMemoryWebhookLog,
   ) {}
 
   async getActivity(): Promise<IntegrationActivity> {
@@ -88,6 +116,20 @@ export class IntegrationService {
       }),
     );
 
-    return { summary, operations };
+    const receipts = await this.webhookLog.recent();
+    const webhookSummary = this.registry.list().map((provider): WebhookSummary => {
+      const own = receipts.filter((receipt) => receipt.providerId === provider.id);
+      const counts = Object.fromEntries(WEBHOOK_OUTCOMES.map((outcome) => [outcome, 0])) as Record<WebhookOutcome, number>;
+      for (const receipt of own) counts[receipt.outcome] += 1;
+      return { providerId: provider.id, providerName: provider.name, counts, lastReceivedAt: own[0]?.receivedAt ?? null };
+    });
+    const recent = await Promise.all(
+      receipts.slice(0, RECENT_LIMIT).map(async (receipt): Promise<IncomingWebhook> => {
+        const order = receipt.orderId ? await this.orders.findById(receipt.orderId) : null;
+        return { ...receipt, providerName: nameOf(receipt.providerId), orderNumber: order?.orderNumber ?? null };
+      }),
+    );
+
+    return { summary, operations, webhooks: { summary: webhookSummary, recent } };
   }
 }
