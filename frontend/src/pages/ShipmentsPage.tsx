@@ -9,7 +9,6 @@ import { ErrorState } from '../components/ErrorState/ErrorState';
 import { OrdersTable } from '../components/OrdersTable/OrdersTable';
 import { PageHeader } from '../components/PageHeader/PageHeader';
 import { Skeleton } from '../components/Skeleton/Skeleton';
-import { useStats } from '../context/statsContext';
 import { useApi } from '../hooks/useApi';
 import { formatNumber } from '../lib/format';
 import { STATUS_LABELS } from '../lib/labels';
@@ -29,7 +28,6 @@ export function ShipmentsPage() {
   const search = params.get('search') ?? '';
   const statusParam = params.get('status');
   const status = isOrderStatus(statusParam) ? statusParam : undefined;
-  const stats = useStats();
 
   // What the user is typing. The URL (and the request) follow after a short pause.
   const [draft, setDraft] = useState(search);
@@ -114,7 +112,6 @@ export function ShipmentsPage() {
               {ORDER_STATUSES.map((value) => (
                 <option key={value} value={value}>
                   {STATUS_LABELS[value]}
-                  {stats.data ? ` (${formatNumber(stats.data.totals.byStatus[value])})` : ''}
                 </option>
               ))}
             </select>
