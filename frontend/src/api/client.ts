@@ -1,8 +1,11 @@
 // A thin wrapper around fetch for our API: unwraps { data } and turns { error } into an ApiError.
 
 export interface ApiErrorDetail {
-  path: string; // e.g. "customerEmail" or "items.0.quantity"
+  path?: string; // validation errors: e.g. "customerEmail" or "items.0.quantity"
   message: string;
+  // Courier errors (422/502 from shipping): which courier answered and its own error code.
+  providerId?: string;
+  code?: string;
 }
 
 export class ApiError extends Error {

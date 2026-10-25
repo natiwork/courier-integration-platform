@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
 import type { Courier } from '../api/couriers';
 import { Button } from '../components/Button/Button';
+import { ConfirmationDialog } from '../components/ConfirmationDialog/ConfirmationDialog';
 import { CourierCard, CourierCardSkeleton } from '../components/CourierCard/CourierCard';
 import { DeliveryGauge } from '../components/DeliveryGauge/DeliveryGauge';
 import { EmptyState } from '../components/EmptyState/EmptyState';
@@ -141,6 +142,8 @@ function Specimens({ theme }: { theme: 'light' | 'dark' }) {
   const [saving, startSaving] = useDemoRequest();
   const [retrying, startRetry] = useDemoRequest();
   const [retryCount, setRetryCount] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmingDialog, startConfirmingDialog] = useDemoRequest();
   const id = (name: string) => `sg-${theme}-${name}`;
 
   return (
@@ -210,6 +213,30 @@ function Specimens({ theme }: { theme: 'light' | 'dark' }) {
             <DeliveryGauge ratio={0.9} delivered={900} failed={40} returned={60} />
           </div>
         </div>
+      </section>
+
+      <section className={styles.section} aria-labelledby={id('dialog')}>
+        <h3 id={id('dialog')} className={styles.heading}>
+          Confirmation dialog
+        </h3>
+        <div className={styles.row}>
+          <Button variant="secondary" onClick={() => setDialogOpen(true)}>
+            Open sample dialog
+          </Button>
+        </div>
+        <ConfirmationDialog
+          open={dialogOpen}
+          title="Ship SAMPLE-1 with Sample courier?"
+          confirmLabel="Confirm (simulated)"
+          busy={confirmingDialog}
+          onConfirm={() => {
+            startConfirmingDialog();
+            setTimeout(() => setDialogOpen(false), DEMO_DELAY_MS);
+          }}
+          onCancel={() => setDialogOpen(false)}
+        >
+          <p>Focus starts on Cancel, Tab stays inside, Escape closes. While confirming, it can't be dismissed.</p>
+        </ConfirmationDialog>
       </section>
 
       <section className={styles.section} aria-labelledby={id('courier')}>

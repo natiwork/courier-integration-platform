@@ -41,3 +41,28 @@ export interface CreateOrderPayload {
 export function createOrder(payload: CreateOrderPayload): Promise<Order> {
   return apiPost<Order>('/api/orders', payload);
 }
+
+export interface ShipOrderPayload {
+  providerId: string;
+  service: string;
+}
+
+// 200 with the shipped order. On 422/502 the order has already been marked FAILED: reload it.
+export function shipOrder(id: string, payload: ShipOrderPayload): Promise<Order> {
+  return apiPost<Order>(`/api/orders/${encodeURIComponent(id)}/ship`, payload);
+}
+
+// Mirrors TrackingReport in backend/src/services/shipmentService.ts. Read-only: asking never changes the order.
+export interface TrackingReport {
+  providerId: string;
+  providerName: string;
+  trackingNumber: string;
+  externalStatus: string;
+  status: OrderStatus;
+  updatedAt: string;
+  checkedAt: string;
+}
+
+export function getTracking(id: string, signal?: AbortSignal): Promise<TrackingReport> {
+  return apiGet<TrackingReport>(`/api/orders/${encodeURIComponent(id)}/tracking`, signal);
+}

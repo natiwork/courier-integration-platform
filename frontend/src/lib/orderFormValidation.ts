@@ -161,7 +161,7 @@ const ITEM_FIELD_PATH = /^items\.(\d+)\.(sku|name|quantity|unitPriceCents)$/;
 export function mapServerErrors(details: readonly ApiErrorDetail[], itemCount: number): { fieldErrors: FieldErrors; otherErrors: string[] } {
   const fieldErrors: FieldErrors = {};
   const otherErrors: string[] = [];
-  for (const { path, message } of details) {
+  for (const { path = '', message } of details) {
     const itemMatch = ITEM_FIELD_PATH.exec(path);
     const knownItem = itemMatch !== null && Number(itemMatch[1]) < itemCount;
     if ((FIELD_PATHS.has(path) || knownItem) && !fieldErrors[path]) fieldErrors[path] = message;

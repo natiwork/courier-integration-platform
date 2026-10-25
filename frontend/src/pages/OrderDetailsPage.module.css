@@ -19,6 +19,29 @@
   gap: var(--grid-gap);
 }
 
+.wide {
+  grid-column: 1 / -1;
+}
+
+/* Receives focus after a ship attempt, so screen readers read the outcome. */
+.result {
+  border-radius: var(--radius-m);
+}
+
+/* SuccessBanner brings its own bottom margin; ErrorState doesn't. */
+.errorResult {
+  margin-bottom: var(--grid-gap);
+}
+
+.result:focus {
+  outline: none;
+}
+
+.result:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .facts {
   display: grid;
   gap: var(--space-4);

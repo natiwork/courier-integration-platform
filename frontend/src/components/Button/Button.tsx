@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import { Link, type LinkProps } from 'react-router';
 import styles from './Button.module.css';
 
@@ -19,6 +19,8 @@ function buttonClassName({ variant = 'primary', size = 'md', block = false }: St
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, StyleProps {
   // While true the button is disabled, so a request cannot be sent twice.
   loading?: boolean;
+  // React 19 passes ref as a normal prop; it ends up on the <button> through ...rest.
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function Button({ variant, size, block, loading = false, disabled, type = 'button', className, children, ...rest }: ButtonProps) {

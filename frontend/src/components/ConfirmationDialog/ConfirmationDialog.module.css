@@ -1,0 +1,43 @@
+.dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: var(--card-padding);
+  border: var(--card-border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-raised);
+}
+
+.dialog::backdrop {
+  background: rgb(19 49 43 / 0.55); /* spruce, so the page stays recognisable behind it */
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: var(--leading-display);
+  letter-spacing: 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  color: var(--text-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 479px) {
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}
