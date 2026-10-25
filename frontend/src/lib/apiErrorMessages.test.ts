@@ -16,7 +16,7 @@ describe('shipErrorMessage', () => {
     [new ApiError(504, 'PROVIDER_TIMEOUT', '…', 'req-1'), "The courier didn't answer in time", 'check with them before shipping again'],
     [new ApiError(409, 'ORDER_NOT_PAID', '…', 'req-1'), "Unpaid orders can't be shipped", 'Record the payment first'],
     [new ApiError(400, 'VALIDATION_ERROR', '…', 'req-1', [{ path: 'service', message: 'NordCargo has no "express" service.' }]), 'Choose a courier and a service', 'NordCargo has no "express" service.'],
-    [new ApiError(0, 'NETWORK_ERROR', "The server didn't respond."), 'The server could not be reached', 'The order was not changed.'],
+    [new ApiError(0, 'NETWORK_ERROR', "The server didn't respond."), 'The server could not be reached', "It's not known whether the order was shipped."],
   ])('explains %s', (error, title, text) => {
     const message = shipErrorMessage(error);
     expect(message.title).toBe(title);

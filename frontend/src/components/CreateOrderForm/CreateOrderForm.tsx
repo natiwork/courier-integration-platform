@@ -4,6 +4,7 @@ import { ApiError } from '../../api/client';
 import { createOrder } from '../../api/orders';
 import type { OrderFormOptions } from '../../api/meta';
 import { useStats } from '../../context/statsContext';
+import { createActionKeys } from '../../lib/actionKey';
 import { fieldAria } from '../../lib/fieldAria';
 import { countryName } from '../../lib/format';
 import {
@@ -56,6 +57,8 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const submittingRef = useRef(false);
+  // One Idempotency-Key per submit; reused only when the same order is resent after a network error.
+  const actionKeys = useRef(createActionKeys()).current;
 
   const countries = [...options.countries].sort((a, b) => countryName(a).localeCompare(countryName(b)));
 
@@ -129,10 +132,12 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
     setSummaryErrors([]);
     setSubmitting(true);
     try {
-      const order = await createOrder(result.payload);
+      const order = await createOrder(result.payload, actionKeys.keyFor(result.payload));
+      actionKeys.settle();
       stats.reload(); // the dashboard numbers now include this order
       navigate(`/shipments/${order.id}`, { state: { createdOrderNumber: order.orderNumber } });
     } catch (error) {
+      actionKeys.settle(error);
       submittingRef.current = false;
       setSubmitting(false);
       if (error instanceof ApiError && error.code === 'VALIDATION_ERROR' && error.details.length > 0) {

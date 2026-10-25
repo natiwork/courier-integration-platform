@@ -63,11 +63,17 @@ export function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
   return request<T>(path, { method: 'GET', signal });
 }
 
-export function apiPost<T>(path: string, payload: unknown, signal?: AbortSignal): Promise<T> {
+export interface PostOptions {
+  signal?: AbortSignal;
+  // Makes the POST safe to retry: the server answers a repeat with the stored response (see lib/actionKey.ts).
+  idempotencyKey?: string;
+}
+
+export function apiPost<T>(path: string, payload: unknown, { signal, idempotencyKey }: PostOptions = {}): Promise<T> {
   return request<T>(path, {
     method: 'POST',
     signal,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey }) },
     body: JSON.stringify(payload),
   });
 }

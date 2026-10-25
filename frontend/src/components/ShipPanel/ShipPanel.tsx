@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { markOrderPaid, shipOrder } from '../../api/orders';
 import { useCouriers } from '../../context/couriersContext';
+import { createActionKeys } from '../../lib/actionKey';
 import { courierProblem, suggestCourier } from '../../lib/courierEligibility';
 import { countryName, formatMoney, formatNumber } from '../../lib/format';
 import type { Order, OrderEvent } from '../../types/order';
@@ -34,6 +35,8 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
   const [busy, setBusy] = useState(false);
   // Synchronous guard: two clicks in the same tick must not send two requests (state updates too late).
   const submittingRef = useRef(false);
+  // One Idempotency-Key per confirmed shipment; reused only when the same request is resent after a network error.
+  const actionKeys = useRef(createActionKeys()).current;
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
@@ -81,9 +84,13 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
     submittingRef.current = true;
     setBusy(true);
     let result: ShipResult;
+    const payload = { providerId: courier.id, service: service.id };
     try {
-      result = { ok: true, order: await shipOrder(order.id, { providerId: courier.id, service: service.id }), courierName: courier.name };
+      const shipped = await shipOrder(order.id, payload, actionKeys.keyFor({ orderId: order.id, ...payload }));
+      actionKeys.settle();
+      result = { ok: true, order: shipped, courierName: courier.name };
     } catch (error) {
+      actionKeys.settle(error);
       result = { ok: false, error };
     }
     submittingRef.current = false;

@@ -23,7 +23,11 @@ export function shipErrorMessage(error: unknown): ErrorMessage {
     switch (error.code) {
       case 'NETWORK_ERROR':
       case 'HTTP_ERROR':
-        return { title: 'The server could not be reached', text: `${error.message} The order was not changed.` };
+        // No answer doesn't mean nothing happened: the request may have arrived and the answer got lost.
+        return {
+          title: 'The server could not be reached',
+          text: "It's not known whether the order was shipped. The page shows its current state; if it is still not shipped, try again.",
+        };
       case 'VALIDATION_ERROR':
         return { title: 'Choose a courier and a service', text: error.details.map((d) => d.message).join(' ') || error.message };
       case 'ORDER_NOT_FOUND':

@@ -38,8 +38,8 @@ export interface CreateOrderPayload {
   items: OrderItem[];
 }
 
-export function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  return apiPost<Order>('/api/orders', payload);
+export function createOrder(payload: CreateOrderPayload, idempotencyKey?: string): Promise<Order> {
+  return apiPost<Order>('/api/orders', payload, { idempotencyKey });
 }
 
 export interface ShipOrderPayload {
@@ -48,8 +48,8 @@ export interface ShipOrderPayload {
 }
 
 // 200 with the shipped order. On 422/502 the order has already been marked FAILED: reload it.
-export function shipOrder(id: string, payload: ShipOrderPayload): Promise<Order> {
-  return apiPost<Order>(`/api/orders/${encodeURIComponent(id)}/ship`, payload);
+export function shipOrder(id: string, payload: ShipOrderPayload, idempotencyKey?: string): Promise<Order> {
+  return apiPost<Order>(`/api/orders/${encodeURIComponent(id)}/ship`, payload, { idempotencyKey });
 }
 
 // UNPAID → PAID. Only paid orders can be shipped.
