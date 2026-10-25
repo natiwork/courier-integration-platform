@@ -1,0 +1,17 @@
+{
+  "name": "courier-integration-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "End-to-end tests: starts the backend and the frontend and drives the UI in Chromium",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}

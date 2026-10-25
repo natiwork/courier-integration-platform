@@ -1,0 +1,12 @@
+{
+  // For the editor only: Playwright compiles the tests itself.
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["playwright.config.ts", "tests"]
+}
