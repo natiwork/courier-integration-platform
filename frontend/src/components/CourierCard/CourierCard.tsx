@@ -43,7 +43,16 @@ export function CourierCard({ courier, platformCountries, platformMaxWeightKg }:
           {up ? 'Responding' : 'Not responding'}
         </p>
         <p className={styles.healthMeta}>
-          <span className="tabular">{formatNumber(health.latencyMs)} ms</span> response, checked at{' '}
+          {up ? (
+            <>
+              <span className="tabular">{formatNumber(health.latencyMs)} ms</span> response
+            </>
+          ) : (
+            <>
+              No answer after <span className="tabular">{formatNumber(health.latencyMs)} ms</span>
+            </>
+          )}
+          , checked at{' '}
           <time dateTime={health.checkedAt} className="tabular">
             {formatTime(health.checkedAt)}
           </time>
