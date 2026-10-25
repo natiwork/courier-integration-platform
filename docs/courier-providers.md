@@ -77,6 +77,10 @@ The gaps are deliberate:
 
 `tests/providers/statusCoverage.test.ts` fails if a mapping gains or loses a status without this list being updated.
 
+## Webhooks
+
+Each provider also describes how it calls us back (`webhook: WebhookSpec`): its payload shape, its signature and timestamp headers, and its status vocabulary, reusing the status table above. See [webhooks.md](webhooks.md).
+
 ## Cancellation
 
 `createShipment` and `getShipmentStatus` take `{ signal }` (`CallOptions`). When our timeout fires, the signal is aborted. A real integration passes it to `fetch()`, and the mocks stop their simulated delay. See [reliability.md](reliability.md).

@@ -37,6 +37,12 @@ A full-stack platform for managing e-commerce orders and courier service integra
   ```
 
   Internal error details and stack traces are logged and never returned to the client.
+- **Courier webhooks** (see [docs/webhooks.md](docs/webhooks.md)): `POST /api/webhooks/:providerId`.
+  - Each courier has its own payload and header format.
+  - Real HMAC-SHA256 signature checks over the raw body, with `timingSafeEqual` and a 5-minute replay window.
+  - Deduplication by event id.
+  - Updates go through the state machine and are recorded as order events. A forbidden transition is answered 200 and recorded as a warning.
+  - **The webhooks are sent by our simulator** (`npm run simulate:webhook`, or "Simulate a courier update" in development); the checks are real.
 - **Reliability** (see [docs/reliability.md](docs/reliability.md)):
   - a timeout on every courier call (`PROVIDER_TIMEOUT_MS`, 2 s);
   - up to 3 attempts with exponential backoff and jitter for temporary courier failures;
@@ -83,7 +89,8 @@ A full-stack platform for managing e-commerce orders and courier service integra
   - "Check again" runs the health checks again. Order tables and details show the courier's name from the same request.
 - **Integrations**:
   - calls per courier (accepted, rejected, unavailable) and the time of the last call;
-  - a table of recent calls with links to the orders.
+  - a table of recent calls with links to the orders;
+  - incoming webhooks: applied, duplicate, ignored and refused, including rejected signatures.
   - Only real calls made by this server are listed. Demo orders were generated, so they never appear.
 
 ## Demo data
@@ -157,6 +164,8 @@ npm run dev        # http://localhost:5173 (calls /api through the Vite proxy)
 ```
 
 Example requests (valid and invalid) are in [backend/requests.http](backend/requests.http) for the VS Code REST Client extension.
+
+Webhooks need `WEBHOOK_SECRET_SWIFTPARCEL` and `WEBHOOK_SECRET_NORDCARGO` in `backend/.env` (`openssl rand -hex 32` each). Then send a signed courier update with `npm run simulate:webhook -- --provider swiftparcel --tracking <number> --status in_transit` (in `backend/`). See [docs/webhooks.md](docs/webhooks.md).
 
 In development, `/styleguide` shows every component and state in both themes, using sample text. This page is not included in production builds.
 
