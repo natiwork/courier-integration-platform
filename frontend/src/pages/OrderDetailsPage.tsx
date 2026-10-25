@@ -1,7 +1,9 @@
-import { Link, useParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ChevronLeft, MapPinned, ReceiptText, Route, UserRound } from 'lucide-react';
 import { ApiError } from '../api/client';
 import { getOrder } from '../api/orders';
+import { Button, ButtonLink } from '../components/Button/Button';
 import { Card } from '../components/Card/Card';
 import { EmptyState } from '../components/EmptyState/EmptyState';
 import { ErrorState } from '../components/ErrorState/ErrorState';
@@ -12,6 +14,7 @@ import { RouteSchematic } from '../components/RouteSchematic/RouteSchematic';
 import { ShipmentTimeline } from '../components/ShipmentTimeline/ShipmentTimeline';
 import { Skeleton } from '../components/Skeleton/Skeleton';
 import { StatusBadge } from '../components/StatusBadge/StatusBadge';
+import { SuccessBanner } from '../components/SuccessBanner/SuccessBanner';
 import { useApi } from '../hooks/useApi';
 import { countryName, formatDateTime, formatNumber } from '../lib/format';
 import type { Order } from '../types/order';
@@ -22,6 +25,17 @@ export function OrderDetailsPage() {
   const order = useApi((signal) => getOrder(orderId, signal), orderId);
   const notFound = order.error instanceof ApiError && order.error.status === 404;
   const current = order.data?.id === orderId ? order.data : undefined;
+
+  // Set by the create form. Read once into local state, then removed from the history entry,
+  // so a reload or coming back later doesn't show "created" again.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(
+    () => (location.state as { createdOrderNumber?: string } | null)?.createdOrderNumber ?? null,
+  );
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   return (
     <>
@@ -41,6 +55,24 @@ export function OrderDetailsPage() {
           )
         }
       />
+
+      {current && createdOrderNumber === current.orderNumber && (
+        <SuccessBanner
+          title={`Shipment ${current.orderNumber} created`}
+          actions={
+            <>
+              <ButtonLink to="/shipments/new" variant="secondary" size="sm">
+                Create another shipment
+              </ButtonLink>
+              <Button variant="quiet" size="sm" onClick={() => setCreatedOrderNumber(null)}>
+                Dismiss
+              </Button>
+            </>
+          }
+        >
+          It is pending and already counted on the Overview and in the shipments list.
+        </SuccessBanner>
+      )}
 
       {notFound ? (
         <EmptyState

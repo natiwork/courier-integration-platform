@@ -1,0 +1,39 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--grid-gap);
+  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-m);
+  background: var(--success-bg);
+  color: var(--text);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--success);
+}
+
+.body {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: 2px;
+}
+
+.title {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.text {
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
