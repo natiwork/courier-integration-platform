@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useCourierName } from '../../context/couriersContext';
 import { countryName, formatDate } from '../../lib/format';
 import { routeProgress } from '../../lib/shipmentStages';
 import type { Order } from '../../types/order';
@@ -46,6 +47,7 @@ function markerFraction(order: Order): number {
 
 export function RouteSchematic({ order }: { order: Order }) {
   const patternId = useId();
+  const courierName = useCourierName();
   const fraction = markerFraction(order);
   const [mx, my] = pointAt(fraction);
   const [hx, hy] = pointAt(HANDOVER);
@@ -94,7 +96,9 @@ export function RouteSchematic({ order }: { order: Order }) {
         </li>
         <li>
           <span className={styles.legendTitle}>Courier</span>
-          <span className={styles.legendValue}>{order.courierProvider ?? 'Not assigned yet'}</span>
+          <span className={styles.legendValue}>
+            {order.courierProvider ? courierName(order.courierProvider) : 'Not assigned yet'}
+          </span>
         </li>
         <li>
           <span className={styles.legendTitle}>Destination</span>

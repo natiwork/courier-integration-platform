@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useCourierName } from '../../context/couriersContext';
 import { countryName, formatDate, formatMoney, formatNumber } from '../../lib/format';
 import type { Order } from '../../types/order';
 import { PaymentBadge } from '../PaymentBadge/PaymentBadge';
@@ -17,6 +18,7 @@ interface OrdersTableProps {
 
 // A real <table> on wide containers; each row becomes a card when the container is narrow.
 export function OrdersTable({ orders, caption, busy = false, showCreated = true }: OrdersTableProps) {
+  const courierName = useCourierName();
   return (
     <div className={styles.wrapper} aria-busy={busy || undefined}>
       <table className={busy ? `${styles.table} ${styles.busy}` : styles.table}>
@@ -64,7 +66,7 @@ export function OrdersTable({ orders, caption, busy = false, showCreated = true 
               </td>
               {/* Extra columns only when the table is very wide (see .wideOnly) */}
               <td data-label="Courier" className={`${styles.wideOnly} ${styles.muted}`}>
-                {order.courierProvider ?? 'Not assigned'}
+                {order.courierProvider ? courierName(order.courierProvider) : 'Not assigned'}
               </td>
               <td data-label="Items" className={`${styles.numeric} ${styles.wideOnly} tabular`}>
                 {formatNumber(order.items.reduce((sum, item) => sum + item.quantity, 0))}

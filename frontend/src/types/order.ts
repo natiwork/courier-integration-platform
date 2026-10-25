@@ -36,7 +36,7 @@ export interface Order {
   totalCents: number;
   currency: 'EUR';
   paymentStatus: PaymentStatus;
-  courierProvider: string | null;
+  courierProvider: string | null; // provider id ("nordcargo"); the name comes from /api/couriers
   status: OrderStatus;
   trackingNumber: string | null;
   createdAt: string;

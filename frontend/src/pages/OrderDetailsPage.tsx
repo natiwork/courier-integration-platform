@@ -15,6 +15,7 @@ import { ShipmentTimeline } from '../components/ShipmentTimeline/ShipmentTimelin
 import { Skeleton } from '../components/Skeleton/Skeleton';
 import { StatusBadge } from '../components/StatusBadge/StatusBadge';
 import { SuccessBanner } from '../components/SuccessBanner/SuccessBanner';
+import { useCourierName } from '../context/couriersContext';
 import { useApi } from '../hooks/useApi';
 import { countryName, formatDateTime, formatNumber } from '../lib/format';
 import type { Order } from '../types/order';
@@ -95,6 +96,7 @@ export function OrderDetailsPage() {
 }
 
 function OrderDetails({ order }: { order: Order }) {
+  const courierName = useCourierName();
   return (
     <div className={styles.grid}>
       <Card title="Shipment progress" icon={<Route size={18} />} className={styles.timeline}>
@@ -137,7 +139,7 @@ function OrderDetails({ order }: { order: Order }) {
           </div>
           <div>
             <dt>Courier</dt>
-            <dd>{order.courierProvider ?? 'Not assigned yet'}</dd>
+            <dd>{order.courierProvider ? courierName(order.courierProvider) : 'Not assigned yet'}</dd>
           </div>
           <div>
             <dt>Tracking number</dt>

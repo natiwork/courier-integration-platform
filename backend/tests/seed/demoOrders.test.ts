@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeTotalCents } from '../../src/domain/money.js';
 import { ORDER_STATUSES } from '../../src/domain/orderStatus.js';
+import { createProviderRegistry } from '../../src/providers/index.js';
 import { InMemoryOrderRepository } from '../../src/repositories/inMemoryOrderRepository.js';
 import { generateDemoOrders } from '../../src/seed/demoOrders.js';
 import { StatsService } from '../../src/services/statsService.js';
@@ -61,7 +62,7 @@ describe('generateDemoOrders', () => {
         expect(order.paymentStatus).not.toBe('REFUNDED');
       }
       if (['SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'RETURNED'].includes(order.status)) {
-        expect(order.courierProvider).toMatch(/^(SwiftParcel|NordCargo)$/);
+        expect(order.courierProvider).toMatch(/^(swiftparcel|nordcargo)$/);
         expect(order.trackingNumber).toMatch(/^DEMO-(SP|NC)-\d{6}$/);
       }
       if (['PENDING', 'PROCESSING', 'CANCELLED'].includes(order.status)) {
@@ -69,6 +70,22 @@ describe('generateDemoOrders', () => {
         expect(order.trackingNumber).toBeNull();
       }
     }
+  });
+
+  it('only gives an order to a registered courier that could really carry it', () => {
+    const registry = createProviderRegistry({ seed: 1, simulateLatency: false });
+    const withCourier = orders.filter((order) => order.courierProvider !== null);
+    expect(withCourier.length).toBeGreaterThan(1000);
+
+    for (const order of withCourier) {
+      const { capabilities } = registry.get(order.courierProvider!); // throws for an unknown id
+      expect(capabilities.supportedCountries).toContain(order.destinationCountry);
+      expect(order.parcelWeightKg).toBeLessThanOrEqual(capabilities.maxParcelWeightKg);
+      expect(order.trackingNumber!.slice(5, 7)).toBe(order.courierProvider === 'swiftparcel' ? 'SP' : 'NC');
+    }
+    // Both couriers have a fair share of the work.
+    const nordCargo = withCourier.filter((order) => order.courierProvider === 'nordcargo').length;
+    expect(nordCargo).toBeGreaterThan(withCourier.length * 0.15);
   });
 
   it('uses unique ids and tracking numbers', () => {

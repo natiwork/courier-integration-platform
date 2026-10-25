@@ -27,7 +27,7 @@ export interface Order {
   totalCents: number; // always computed from items, never sent by the client
   currency: typeof CURRENCY;
   paymentStatus: PaymentStatus;
-  courierProvider: string | null; // chosen when the order is shipped
+  courierProvider: string | null; // provider id from the registry ("swiftparcel"), chosen when the order ships
   status: OrderStatus;
   trackingNumber: string | null; // issued by the courier provider
   createdAt: string; // ISO 8601

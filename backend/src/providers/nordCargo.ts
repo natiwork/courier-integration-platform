@@ -48,6 +48,7 @@ export function mapNordCargoStatus(code: string): OrderStatus | null {
 }
 
 export const NORDCARGO_COUNTRIES: readonly CountryCode[] = ['DK', 'SE', 'NO', 'FI', 'IS', 'EE', 'LV', 'LT', 'DE', 'PL', 'NL'];
+export const NORDCARGO_MAX_WEIGHT_KG = 30; // stricter than the platform's 100 kg
 
 const TIMELINE: TimelineStep<NordCargoEventCode>[] = [
   { afterHours: 0, code: 'NC10' },
@@ -65,7 +66,7 @@ export class NordCargoProvider implements CourierProvider {
   readonly id = NORDCARGO_ID;
   readonly name = 'NordCargo';
   readonly capabilities: ProviderCapabilities = {
-    maxParcelWeightKg: 30,
+    maxParcelWeightKg: NORDCARGO_MAX_WEIGHT_KG,
     supportedCountries: NORDCARGO_COUNTRIES,
     services: [
       { id: 'standard', name: 'Standard' },

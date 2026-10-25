@@ -10,3 +10,10 @@ export function useCouriers(): ApiState<Courier[]> {
   if (!couriers) throw new Error('useCouriers must be used inside <CouriersProvider>');
   return couriers;
 }
+
+// Orders store a provider id ("nordcargo"); this turns it into the name the registry reports ("NordCargo").
+// Until the list has loaded, or if it failed, the id itself is shown rather than nothing.
+export function useCourierName(): (id: string) => string {
+  const { data } = useCouriers();
+  return (id) => data?.find((courier) => courier.id === id)?.name ?? id;
+}

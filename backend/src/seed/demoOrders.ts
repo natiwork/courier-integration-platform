@@ -1,6 +1,8 @@
 import type { CountryCode } from '../domain/countries.js';
 import { computeTotalCents } from '../domain/money.js';
 import { createRandom } from '../lib/random.js';
+import { NORDCARGO_COUNTRIES, NORDCARGO_ID, NORDCARGO_MAX_WEIGHT_KG } from '../providers/nordCargo.js';
+import { SWIFTPARCEL_ID } from '../providers/swiftParcel.js';
 import { CURRENCY, type OrderItem, type PaymentStatus } from '../domain/order.js';
 import type { OrderStatus } from '../domain/orderStatus.js';
 import type { NewOrder } from '../repositories/orderRepository.js';
@@ -71,10 +73,17 @@ const PRODUCTS: Product[] = [
   { sku: 'TEA-SET-14', name: 'Loose-leaf tea sampler', unitPriceCents: 1990, weightKg: 0.4, popularity: 5 },
 ];
 
+// Orders store the provider id from the registry; the UI gets display names from GET /api/couriers.
 const COURIERS = [
-  { name: 'SwiftParcel', code: 'SP' },
-  { name: 'NordCargo', code: 'NC' },
+  { id: SWIFTPARCEL_ID, code: 'SP' },
+  { id: NORDCARGO_ID, code: 'NC' },
 ];
+
+// NordCargo only takes parcels it can really carry; anything else goes with SwiftParcel, which takes every order.
+function courierFor(picked: (typeof COURIERS)[number], country: CountryCode, weightKg: number) {
+  const nordCargoFits = NORDCARGO_COUNTRIES.includes(country) && weightKg <= NORDCARGO_MAX_WEIGHT_KG;
+  return picked.id === NORDCARGO_ID && !nordCargoFits ? COURIERS[0]! : picked;
+}
 
 // Statuses that mean the parcel was handed to a courier.
 const HANDED_OVER: ReadonlySet<OrderStatus> = new Set(['SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'RETURNED']);
@@ -232,7 +241,10 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
       typicalMs <= nowMs ? typicalMs : Math.round(createdMs + (nowMs - createdMs) * between(random, 0.35, 0.95));
     const paymentStatus = paymentFor(random, status, ageDays, (nowMs - updatedMs) / DAY_MS);
 
-    const courier = HANDED_OVER.has(status) || (status === 'FAILED' && random() < 0.5) ? pick(random, COURIERS) : null;
+    const parcelWeightKg = Math.max(0.1, weightOf(items));
+    // Same random draws as before the provider ids existed, so the rest of the data stays identical.
+    const picked = HANDED_OVER.has(status) || (status === 'FAILED' && random() < 0.5) ? pick(random, COURIERS) : null;
+    const courier = picked && courierFor(picked, place.country, parcelWeightKg);
 
     return {
       id: demoId(random),
@@ -242,13 +254,13 @@ export function generateDemoOrders(now: Date, count = 1200): NewOrder[] {
       destinationCity: place.city,
       postalCode: pick(random, place.postalCodes),
       destinationCountry: place.country,
-      parcelWeightKg: Math.max(0.1, weightOf(items)),
+      parcelWeightKg,
       items,
       totalCents: computeTotalCents(items),
       currency: CURRENCY,
       paymentStatus,
       status,
-      courierProvider: courier?.name ?? null,
+      courierProvider: courier?.id ?? null,
       trackingNumber: courier ? `DEMO-${courier.code}-${String(100000 + index * 7919).slice(-6)}` : null,
       createdAt: new Date(createdMs).toISOString(),
       updatedAt: new Date(updatedMs).toISOString(),
