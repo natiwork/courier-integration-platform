@@ -13,8 +13,8 @@ import { logger, requestContext } from '../lib/logger.js';
 import type { CourierProvider } from '../providers/courierProvider.js';
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
 import { verifyWebhookSignature, WEBHOOK_TOLERANCE_SECONDS, type WebhookEvent } from '../providers/webhooks.js';
-import type { InMemoryWebhookEventStore } from '../webhooks/webhookEventStore.js';
-import type { InMemoryWebhookLog, WebhookOutcome, WebhookReceipt } from '../webhooks/webhookLog.js';
+import type { WebhookEventStore } from '../webhooks/webhookEventStore.js';
+import type { WebhookLog, WebhookOutcome, WebhookReceipt } from '../webhooks/webhookLog.js';
 import type { OrderService } from './orderService.js';
 
 export interface WebhookResult {
@@ -37,8 +37,8 @@ export class WebhookService {
     private readonly registry: ProviderRegistry,
     private readonly orders: OrderService,
     private readonly secrets: Record<string, string | undefined>,
-    private readonly dedupe: InMemoryWebhookEventStore,
-    private readonly log: InMemoryWebhookLog,
+    private readonly dedupe: WebhookEventStore,
+    private readonly log: WebhookLog,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -80,17 +80,17 @@ export class WebhookService {
     }
     const event = parsed.event;
 
-    const claim = await this.dedupe.claim(`${provider.id}:${event.eventId}`);
+    const claim = await this.dedupe.claim(provider.id, event.eventId);
     if (claim.kind === 'duplicate') {
       await this.record(provider, 'duplicate', event);
       return { status: 'duplicate', eventId: event.eventId };
     }
     try {
       const result = await this.apply(provider, event);
-      claim.keep();
+      await claim.keep();
       return result;
     } catch (error) {
-      claim.release(); // 404 or our own failure: the courier's retry must be handled, not treated as a duplicate
+      await claim.release(); // 404 or our own failure: the courier's retry must be handled, not treated as a duplicate
       if (error instanceof AppError && error.code === 'UNKNOWN_TRACKING_NUMBER') {
         await this.record(provider, 'unknown_tracking', event);
       }

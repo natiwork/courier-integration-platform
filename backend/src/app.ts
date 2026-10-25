@@ -26,8 +26,8 @@ import { ShipmentService } from './services/shipmentService.js';
 import { StatsService } from './services/statsService.js';
 import { WebhookService } from './services/webhookService.js';
 import { WebhookSimulatorService } from './services/webhookSimulatorService.js';
-import { InMemoryWebhookEventStore } from './webhooks/webhookEventStore.js';
-import { InMemoryWebhookLog } from './webhooks/webhookLog.js';
+import { InMemoryWebhookEventStore, type WebhookEventStore } from './webhooks/webhookEventStore.js';
+import { InMemoryWebhookLog, type WebhookLog } from './webhooks/webhookLog.js';
 
 // Default for tests: fixed seed and no waiting, so every run gives the same answers instantly.
 const TEST_PROVIDER_SEED = 1;
@@ -53,8 +53,8 @@ export interface AppOptions {
   demoData?: boolean;
   // Webhook signing secrets by provider id. Missing: that courier's webhook endpoint answers 503.
   webhookSecrets?: Record<string, string | undefined>;
-  webhookEventStore?: InMemoryWebhookEventStore;
-  webhookLog?: InMemoryWebhookLog;
+  webhookEventStore?: WebhookEventStore;
+  webhookLog?: WebhookLog;
   // Registers the dev-only webhook simulator routes (/api/dev). Off unless asked for.
   webhookSimulator?: boolean;
   // Injectable clock for tests.

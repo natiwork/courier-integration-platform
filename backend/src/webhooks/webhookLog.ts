@@ -4,17 +4,20 @@ import type { OrderStatus } from '../domain/orderStatus.js';
 // A rejected signature can't be tied to an order (the body isn't trusted), so this log lives next to the
 // order events instead of inside them.
 
-export type WebhookOutcome =
-  | 'accepted'
-  | 'duplicate'
-  | 'unchanged'
-  | 'ignored_transition'
-  | 'unmapped_status'
-  | 'unknown_tracking'
-  | 'invalid_signature'
-  | 'stale'
-  | 'invalid_payload'
-  | 'not_configured';
+export const WEBHOOK_OUTCOMES = [
+  'accepted',
+  'duplicate',
+  'unchanged',
+  'ignored_transition',
+  'unmapped_status',
+  'unknown_tracking',
+  'invalid_signature',
+  'stale',
+  'invalid_payload',
+  'not_configured',
+] as const;
+
+export type WebhookOutcome = (typeof WEBHOOK_OUTCOMES)[number];
 
 export interface WebhookReceipt {
   id: string;
@@ -30,7 +33,13 @@ export interface WebhookReceipt {
   orderId: string | null;
 }
 
-export class InMemoryWebhookLog {
+export interface WebhookLog {
+  append(receipt: WebhookReceipt): Promise<void>;
+  // Newest first.
+  recent(limit?: number): Promise<WebhookReceipt[]>;
+}
+
+export class InMemoryWebhookLog implements WebhookLog {
   private readonly receipts: WebhookReceipt[] = [];
 
   async append(receipt: WebhookReceipt): Promise<void> {

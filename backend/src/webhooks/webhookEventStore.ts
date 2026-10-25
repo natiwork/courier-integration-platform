@@ -1,10 +1,15 @@
 // Remembers which courier events were already handled, so a redelivered event changes nothing.
 // Couriers deliver "at least once": after a timeout or an error on our side they send the same event again.
-// In memory for now; a table with a unique (provider, event id) key in Phase 9.
+// In memory here; PostgresWebhookEventStore uses a table with the primary key (provider_id, event_id).
 
 export type Claim =
-  | { kind: 'new'; keep: () => void; release: () => void } // handle it, then keep() or release()
+  | { kind: 'new'; keep: () => Promise<void>; release: () => Promise<void> } // handle it, then keep() or release()
   | { kind: 'duplicate' };
+
+export interface WebhookEventStore {
+  // Event ids are only unique per courier.
+  claim(providerId: string, eventId: string): Promise<Claim>;
+}
 
 interface Entry {
   claimedAt: number;
@@ -12,8 +17,10 @@ interface Entry {
 }
 
 export const WEBHOOK_DEDUPE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // longer than any courier keeps retrying
+// A claim in flight longer than this belongs to a request whose process died: a redelivery may take it over.
+export const WEBHOOK_CLAIM_LEASE_MS = 60 * 1000;
 
-export class InMemoryWebhookEventStore {
+export class InMemoryWebhookEventStore implements WebhookEventStore {
   private readonly entries = new Map<string, Entry>();
 
   constructor(
@@ -21,7 +28,8 @@ export class InMemoryWebhookEventStore {
     private readonly ttlMs = WEBHOOK_DEDUPE_TTL_MS,
   ) {}
 
-  async claim(key: string): Promise<Claim> {
+  async claim(providerId: string, eventId: string): Promise<Claim> {
+    const key = `${providerId}:${eventId}`;
     for (;;) {
       const nowMs = this.now().getTime();
       for (const [k, entry] of this.entries) {
@@ -43,13 +51,13 @@ export class InMemoryWebhookEventStore {
       return {
         kind: 'new',
         // A final outcome (applied, ignored, unchanged): later copies of this event are duplicates.
-        keep: () => {
+        keep: async () => {
           delete entry.settled;
           settle(true);
         },
         // An outcome the courier should retry (unknown tracking number, our own error): forget the event,
         // otherwise the retry would be answered "duplicate" and the update lost.
-        release: () => {
+        release: async () => {
           this.entries.delete(key);
           settle(false);
         },

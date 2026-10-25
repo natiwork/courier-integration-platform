@@ -1,6 +1,6 @@
 // Remembers what was answered to a request with a given Idempotency-Key, so a retry gets the same answer
-// instead of doing the work twice. In memory for now; PostgreSQL in Phase 9 (INSERT ... ON CONFLICT does what
-// begin() does here: claim the key atomically).
+// instead of doing the work twice. In memory here; PostgresIdempotencyStore keeps the keys in the database,
+// where INSERT ... ON CONFLICT does what begin() does here: claim the key atomically.
 
 export interface StoredResponse {
   status: number;
@@ -9,7 +9,7 @@ export interface StoredResponse {
 }
 
 export type BeginResult =
-  | { kind: 'new'; complete: (response: StoredResponse | null) => void } // first time: do the work, then complete()
+  | { kind: 'new'; complete: (response: StoredResponse | null) => Promise<void> } // first time: do the work, then complete()
   | { kind: 'replay'; response: StoredResponse } // done before with the same body
   | { kind: 'wait'; done: Promise<StoredResponse | null> } // the first request is still running
   | { kind: 'mismatch' }; // the key was used with a different request
@@ -26,6 +26,9 @@ interface Entry {
 }
 
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+// A key in flight longer than this belongs to a request whose process died: another request may take it over.
+// Longer than the slowest real request (3 courier attempts with the longest allowed timeout, 60 s, plus backoff).
+export const IDEMPOTENCY_LEASE_MS = 5 * 60 * 1000;
 
 export class InMemoryIdempotencyStore implements IdempotencyStore {
   private readonly entries = new Map<string, Entry>();
@@ -53,7 +56,7 @@ export class InMemoryIdempotencyStore implements IdempotencyStore {
     this.entries.set(key, entry);
     return {
       kind: 'new',
-      complete: (response) => {
+      complete: async (response) => {
         // Nothing worth keeping (an unexpected 500): forget the key, so the client's retry can do the work.
         if (response) {
           entry.response = response;

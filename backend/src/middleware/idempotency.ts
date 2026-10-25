@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { RequestHandler, Response } from 'express';
 import { AppError } from '../errors/appError.js';
 import type { IdempotencyStore, StoredResponse } from '../idempotency/idempotencyStore.js';
+import { errorFields, logger } from '../lib/logger.js';
 import { stableStringify } from '../lib/stableStringify.js';
 
 // Printable ASCII without spaces, like a UUID. Long enough for any reasonable key, short enough to store.
@@ -70,7 +71,7 @@ function replay(res: Response, response: StoredResponse): void {
 
 // Keeps a copy of what the route answers. 5xx other than courier errors (502/504) are not stored:
 // those are our own failures, and a retry with the same key should get a real second chance.
-function capture(res: Response, complete: (response: StoredResponse | null) => void): void {
+function capture(res: Response, complete: (response: StoredResponse | null) => Promise<void>): void {
   let captured: StoredResponse | null = null;
   const json = res.json.bind(res);
   res.json = (body: unknown) => {
@@ -83,7 +84,8 @@ function capture(res: Response, complete: (response: StoredResponse | null) => v
     if (settled) return;
     settled = true;
     const keep = captured !== null && (captured.status < 500 || captured.status === 502 || captured.status === 504);
-    complete(keep ? captured : null);
+    // The response has already gone out; if storing it fails, a retry simply runs again (after the lease).
+    complete(keep ? captured : null).catch((error: unknown) => logger.error('idempotency key not saved', errorFields(error)));
   };
   res.on('finish', settle);
   res.on('close', settle); // the client went away before the answer was sent

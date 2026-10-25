@@ -2,7 +2,7 @@ import { PROVIDER_EVENT_TYPES, type OrderEvent, type OrderEventType } from '../d
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
 import type { OrderEventRepository } from '../repositories/orderEventRepository.js';
 import type { OrderRepository } from '../repositories/orderRepository.js';
-import type { InMemoryWebhookLog, WebhookOutcome, WebhookReceipt } from '../webhooks/webhookLog.js';
+import type { WebhookLog, WebhookOutcome, WebhookReceipt } from '../webhooks/webhookLog.js';
 
 export type OperationOutcome = 'succeeded' | 'rejected' | 'unavailable' | 'timedOut';
 
@@ -76,7 +76,7 @@ export class IntegrationService {
     private readonly events: OrderEventRepository,
     private readonly orders: OrderRepository,
     private readonly registry: ProviderRegistry,
-    private readonly webhookLog: InMemoryWebhookLog,
+    private readonly webhookLog: WebhookLog,
   ) {}
 
   async getActivity(): Promise<IntegrationActivity> {
