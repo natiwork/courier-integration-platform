@@ -6,7 +6,7 @@ const courierDetail = { providerId: 'nordcargo', code: 'INVALID_ADDRESS', messag
 
 describe('shipErrorMessage', () => {
   it.each([
-    [new ApiError(422, 'PROVIDER_REJECTED', 'NordCargo rejected the request: …', 'req-1', [courierDetail]), 'The courier rejected the shipment', 'NordCargo requires a house number in the street address. The order is marked as failed.'],
+    [new ApiError(422, 'PROVIDER_REJECTED', 'NordCargo rejected the request: …', 'req-1', [courierDetail]), 'The courier rejected the shipment', 'NordCargo requires a house number in the street address. The order is marked as failed. Choose another courier, or contact the customer'],
     [new ApiError(502, 'PROVIDER_UNAVAILABLE', 'NordCargo is temporarily unavailable.', 'req-1', [courierDetail]), 'The courier is temporarily unavailable', 'you can safely try again'],
     [new ApiError(422, 'COURIER_CANNOT_TAKE_ORDER', '…', 'req-1', [{ providerId: 'nordcargo', code: 'WEIGHT_LIMIT_EXCEEDED', message: 'NordCargo accepts parcels up to 30 kg' }]), "This courier can't take the order", 'NordCargo accepts parcels up to 30 kg. Choose another courier.'],
     [new ApiError(409, 'ALREADY_SHIPPED', 'Order ORD-1001 was already shipped (tracking number SP1)', 'req-1'), 'This order was already shipped', 'Nothing was sent again.'],
@@ -20,6 +20,11 @@ describe('shipErrorMessage', () => {
     const message = shipErrorMessage(error);
     expect(message.title).toBe(title);
     expect(message.text).toContain(text);
+  });
+
+  it('never suggests editing the order, which the app cannot do', () => {
+    const message = shipErrorMessage(new ApiError(422, 'PROVIDER_REJECTED', '…', 'r', [courierDetail]));
+    expect(message.text).not.toMatch(/fix the order|edit/i);
   });
 
   it('adds the request id when there is one', () => {

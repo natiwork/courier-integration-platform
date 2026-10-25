@@ -41,7 +41,8 @@ export function shipErrorMessage(error: unknown): ErrorMessage {
       case 'PROVIDER_REJECTED':
         return {
           title: 'The courier rejected the shipment',
-          text: `${courierText(error)}. The order is marked as failed. Fix the order or choose another courier, then try again.`,
+          // Orders can't be edited, so only say what the user can really do.
+          text: `${courierText(error)}. The order is marked as failed. Choose another courier, or contact the customer about the problem and ship again.`,
         };
       case 'PROVIDER_UNAVAILABLE':
         return {
