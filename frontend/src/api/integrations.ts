@@ -13,6 +13,7 @@ export interface ProviderOperation {
   message: string;
   orderId: string;
   orderNumber: string | null;
+  attempts: number | null; // 3 = it worked (or gave up) on the third call
 }
 
 export interface ProviderActivitySummary {

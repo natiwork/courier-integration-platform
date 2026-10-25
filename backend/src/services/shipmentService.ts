@@ -16,6 +16,7 @@ import {
 import { checkCapabilities } from '../providers/capabilities.js';
 import type { CourierProvider, ProviderResult, ShipmentInput } from '../providers/courierProvider.js';
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
+import { DEFAULT_RETRY_POLICY, retryWithBackoff, type RetryPolicy } from '../lib/retry.js';
 import { withTimeout } from '../lib/withTimeout.js';
 import type { ShipOrderInput } from '../validation/shipmentSchemas.js';
 import type { OrderService } from './orderService.js';
@@ -45,6 +46,14 @@ export const DEFAULT_PROVIDER_TIMEOUT_MS = 2000;
 export interface ShipmentServiceOptions {
   now?: () => Date;
   timeoutMs?: number; // per courier call
+  retry?: RetryPolicy;
+  random?: () => number; // backoff jitter; seeded in tests
+}
+
+// Only answers where the courier said "not now" are retried. A timeout or an unexpected error leaves us not
+// knowing whether the shipment was created, so retrying could create a second one.
+function isRetryable(outcome: CallOutcome<unknown>): boolean {
+  return outcome.kind === 'transient' && outcome.code !== 'PROVIDER_ERROR';
 }
 
 // Hands an order to a courier. Every status change goes through OrderService, so each step is recorded.
@@ -57,6 +66,8 @@ export class ShipmentService {
 
   private readonly now: () => Date;
   private readonly timeoutMs: number;
+  private readonly retry: RetryPolicy;
+  private readonly random: () => number;
 
   constructor(
     private readonly orders: OrderService,
@@ -65,6 +76,8 @@ export class ShipmentService {
   ) {
     this.now = options.now ?? (() => new Date());
     this.timeoutMs = options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS;
+    this.retry = options.retry ?? DEFAULT_RETRY_POLICY;
+    this.random = options.random ?? Math.random;
   }
 
   async ship(orderId: string, { providerId, service }: ShipOrderInput): Promise<Order> {
@@ -144,7 +157,13 @@ export class ShipmentService {
       providerId: provider.id,
     });
 
-    const result = await this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal }));
+    // Retries happen inside this request while it holds the in-flight lock (see ship()): a second request for the
+    // same order gets 409 SHIPMENT_IN_PROGRESS until all attempts and waits are over, so it can't start a parallel
+    // shipment in between.
+    const { result, attempts } = await retryWithBackoff(
+      () => this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal })),
+      { policy: this.retry, shouldRetry: isRetryable, random: this.random },
+    );
     switch (result.kind) {
       case 'success':
         return this.orders.changeStatus(orderId, 'SHIPPED', {
@@ -152,6 +171,7 @@ export class ShipmentService {
           source: 'provider',
           message: `${provider.name} accepted the parcel, tracking number ${result.value.trackingNumber}`,
           providerId: provider.id,
+          attempts,
           patch: { courierProvider: provider.id, trackingNumber: result.value.trackingNumber },
         });
       case 'permanent': {
@@ -161,6 +181,7 @@ export class ShipmentService {
           message: `${provider.name} rejected the shipment: ${result.message}`,
           providerId: provider.id,
           code: result.code,
+          attempts,
         });
         throw providerRejected(provider.name, { providerId: provider.id, code: result.code, message: result.message });
       }
@@ -171,11 +192,12 @@ export class ShipmentService {
           message: `${provider.name} was unavailable: ${result.message}`,
           providerId: provider.id,
           code: result.code,
+          attempts,
         });
         throw providerUnavailable(
           provider.name,
           { providerId: provider.id, code: result.code, message: result.message },
-          'The order was marked as failed; you can try again.',
+          attempts > 1 ? `Tried ${attempts} times. The order was marked as failed; you can try again.` : 'The order was marked as failed; you can try again.',
         );
       }
       case 'timeout': {
@@ -186,6 +208,7 @@ export class ShipmentService {
           message: `${provider.name} did not answer in time: ${result.message}`,
           providerId: provider.id,
           code: result.code,
+          attempts,
         });
         throw providerTimeout(
           provider.name,

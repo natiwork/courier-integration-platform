@@ -37,6 +37,7 @@ function event(toStatus: OrderEvent['toStatus'], createdAt: string, type: OrderE
     message: 'test',
     providerId: null,
     code: null,
+    attempts: null,
     createdAt,
   };
 }

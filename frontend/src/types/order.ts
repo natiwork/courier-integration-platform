@@ -64,5 +64,6 @@ export interface OrderEvent {
   message: string;
   providerId: string | null;
   code: string | null;
+  attempts: number | null; // courier events: how many calls it took
   createdAt: string;
 }

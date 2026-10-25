@@ -133,6 +133,7 @@ describe('OrderService', () => {
         message: 'Picked and packed',
         providerId: null,
         code: null,
+        attempts: null,
         createdAt: updated.updatedAt,
       });
     });

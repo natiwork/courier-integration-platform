@@ -97,6 +97,7 @@ function sampleEvents(status: OrderStatus): OrderEvent[] {
     message: to === 'SHIPPED' ? 'Sample courier accepted the parcel, tracking number SAMPLE-1' : 'Sample step',
     providerId: null,
     code: null,
+    attempts: null,
     createdAt: new Date(Date.parse('2026-01-05T09:30:00.000Z') + index * 3_600_000).toISOString(),
   }));
 }

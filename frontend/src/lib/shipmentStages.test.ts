@@ -39,6 +39,7 @@ function event(toStatus: OrderStatus, createdAt: string, extra: Partial<OrderEve
     message: 'step',
     providerId: null,
     code: null,
+    attempts: null,
     createdAt,
     ...extra,
   };

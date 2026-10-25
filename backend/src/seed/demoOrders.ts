@@ -333,6 +333,7 @@ export function generateDemoEvents(orders: readonly NewOrder[]): OrderEvent[] {
         message: index === 0 ? DEMO_MESSAGES.PENDING : DEMO_MESSAGES[status],
         providerId: null,
         code: null,
+        attempts: null,
         createdAt: new Date(atMs).toISOString(),
       };
     });

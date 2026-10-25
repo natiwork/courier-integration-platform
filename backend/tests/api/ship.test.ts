@@ -179,7 +179,7 @@ describe('POST /api/orders/:id/ship', () => {
 
     expect(res.body.error).toMatchObject({
       code: 'PROVIDER_UNAVAILABLE',
-      message: 'NordCargo is temporarily unavailable. The order was marked as failed; you can try again.',
+      message: 'NordCargo is temporarily unavailable. Tried 3 times. The order was marked as failed; you can try again.',
       details: [{ providerId: 'nordcargo', code: 'PROVIDER_UNAVAILABLE' }],
     });
     const events = (await request(app).get(`/api/orders/${id}/events`).expect(200)).body.data;

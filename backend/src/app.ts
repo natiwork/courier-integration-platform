@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
+import type { RetryPolicy } from './lib/retry.js';
 import { createProviderRegistry } from './providers/index.js';
 import type { ProviderRegistry } from './providers/providerRegistry.js';
 import { InMemoryOrderEventRepository } from './repositories/inMemoryOrderEventRepository.js';
@@ -31,6 +32,10 @@ export interface AppOptions {
   providerRegistry?: ProviderRegistry;
   // Deadline for each courier call. Defaults to DEFAULT_PROVIDER_TIMEOUT_MS (2 s).
   providerTimeoutMs?: number;
+  // Retries of temporary courier failures. Defaults to 3 attempts with 200 ms → 400 ms backoff.
+  retryPolicy?: RetryPolicy;
+  // Backoff jitter. Defaults to Math.random.
+  random?: () => number;
   // True when the store was filled by the demo seed; reported by /api/stats/overview.
   demoData?: boolean;
   // Injectable clock for tests.
@@ -47,7 +52,12 @@ export function createApp(options: AppOptions = {}): Express {
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
-  const shipmentService = new ShipmentService(orderService, providerRegistry, { now: options.now, timeoutMs: options.providerTimeoutMs });
+  const shipmentService = new ShipmentService(orderService, providerRegistry, {
+    now: options.now,
+    timeoutMs: options.providerTimeoutMs,
+    retry: options.retryPolicy,
+    random: options.random,
+  });
   const integrationService = new IntegrationService(orderEventRepository, orderRepository, providerRegistry);
 
   const app = express();

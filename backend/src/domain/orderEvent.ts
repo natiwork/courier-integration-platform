@@ -41,5 +41,6 @@ export interface OrderEvent {
   message: string;
   providerId: string | null; // set when a courier was involved
   code: string | null; // the courier's error code, e.g. "INVALID_ADDRESS"
+  attempts: number | null; // courier events: how many calls it took (temporary failures are retried)
   createdAt: string; // ISO 8601
 }

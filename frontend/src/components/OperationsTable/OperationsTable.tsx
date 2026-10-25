@@ -42,6 +42,11 @@ export function OperationsTable({ operations, busy = false }: { operations: Prov
                     <Icon size={16} aria-hidden="true" />
                     {label}
                   </span>
+                  {operation.attempts !== null && operation.attempts > 1 && (
+                    <span className={styles.attempts}>
+                      {operation.outcome === 'succeeded' ? `on attempt ${operation.attempts}` : `after ${operation.attempts} attempts`}
+                    </span>
+                  )}
                 </td>
                 <td data-label="Order">
                   {operation.orderNumber ? (

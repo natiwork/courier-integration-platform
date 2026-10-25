@@ -29,6 +29,8 @@ export class FakeProvider implements CourierProvider {
     code: 'SHIPMENT_NOT_FOUND',
     message: 'Fake Courier has no such shipment',
   };
+  // Answers used one per call, before falling back to `next`: e.g. [transient, transient] then success.
+  queue: ProviderResult<CreatedShipment>[] = [];
   gate: Promise<void> | null = null;
   // The signal of the last call, to check that a timeout really cancels the call.
   lastSignal: AbortSignal | undefined;
@@ -42,6 +44,8 @@ export class FakeProvider implements CourierProvider {
     this.calls.push(input);
     this.lastSignal = options.signal;
     if (this.gate) await this.gate;
+    const queued = this.queue.shift();
+    if (queued) return queued;
     return typeof this.next === 'function' ? this.next() : this.next;
   }
 

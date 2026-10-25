@@ -22,6 +22,7 @@ export interface ProviderOperation {
   message: string;
   orderId: string;
   orderNumber: string | null; // null if the order no longer exists
+  attempts: number | null; // how many calls it took, e.g. 3 = succeeded after two temporary failures
 }
 
 export interface ProviderActivitySummary {
@@ -82,6 +83,7 @@ export class IntegrationService {
           message: event.message,
           orderId: event.orderId,
           orderNumber: order?.orderNumber ?? null,
+          attempts: event.attempts,
         };
       }),
     );

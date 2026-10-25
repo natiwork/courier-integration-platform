@@ -16,6 +16,7 @@ export interface StatusChange {
   message: string;
   providerId?: string;
   code?: string;
+  attempts?: number;
   // Fields that change together with the status, e.g. the tracking number when a parcel ships.
   patch?: Partial<Pick<Order, 'courierProvider' | 'trackingNumber'>>;
 }
@@ -131,6 +132,7 @@ export class OrderService {
       message: change.message,
       providerId: change.providerId ?? null,
       code: change.code ?? null,
+      attempts: change.attempts ?? null,
       createdAt,
     });
   }

@@ -94,6 +94,7 @@ function OrderHistory({ events }: { events: OrderEvent[] }) {
             <span className={styles.historyMeta}>
               From {SOURCE_LABELS[event.source]}
               {event.code && <>, code {event.code}</>}
+              {event.attempts !== null && event.attempts > 1 && <>, after {event.attempts} attempts</>}
             </span>
           </li>
         ))}
