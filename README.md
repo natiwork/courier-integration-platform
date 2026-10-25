@@ -90,7 +90,7 @@ Node.js 24, TypeScript (strict), Express 5, Zod, PostgreSQL 18 (`pg`), Vitest, S
 - **The couriers are mocks.** SwiftParcel and NordCargo are fictional and run inside the backend, with simulated delays, outages and a simulated health check. No real courier API is called.
 - **The webhooks are simulated.** The signature check, replay window, deduplication and status rules are real, but the requests come from our simulator (CLI or the labelled "Simulate a courier update" box), not from a courier.
 - **Demo data.** About 1,200 invented orders (people, addresses, tracking numbers) fill an empty database so the dashboard has something to show. The UI shows a "Demo data" label.
-- **No authentication or users.** Anyone who can reach the app can use it. The Docker setup binds to localhost only.
+- **No authentication or users.** Anyone who can reach the app can use it. The Docker setup binds to localhost only. There is no rate limiting either ([security notes](docs/security.md)).
 - More details:
   - an interrupted shipment is only recovered as "check with the courier";
   - webhook handling is several writes, not one transaction;
@@ -108,4 +108,4 @@ Node.js 24, TypeScript (strict), Express 5, Zod, PostgreSQL 18 (`pg`), Vitest, S
 
 ## Documentation
 
-[API reference](docs/api.md) · [Storage and demo data](docs/storage.md) · [Frontend](docs/frontend.md) · [State machine](docs/state-machine.md) · [Courier providers](docs/courier-providers.md) · [Reliability](docs/reliability.md) · [Webhooks](docs/webhooks.md) · [Testing](docs/testing.md)
+[API reference](docs/api.md) · [Storage and demo data](docs/storage.md) · [Frontend](docs/frontend.md) · [State machine](docs/state-machine.md) · [Courier providers](docs/courier-providers.md) · [Reliability](docs/reliability.md) · [Webhooks](docs/webhooks.md) · [Testing](docs/testing.md) · [Security](docs/security.md)

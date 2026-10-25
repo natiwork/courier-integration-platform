@@ -3,6 +3,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
 import { InMemoryIdempotencyStore, type IdempotencyStore } from './idempotency/idempotencyStore.js';
 import type { RetryPolicy } from './lib/retry.js';
 import { createProviderRegistry } from './providers/index.js';
@@ -95,6 +96,7 @@ export function createApp(options: AppOptions = {}): Express {
   // Order matters: requestId first so every later error (including bad JSON) has an id.
   app.use(requestId);
   app.use(requestLogger);
+  app.use(securityHeaders);
   // Before express.json(): webhooks need the raw bytes to check the signature (see webhookRoutes.ts).
   app.use('/api/webhooks', createWebhookRouter(webhookService));
   app.use(express.json());
