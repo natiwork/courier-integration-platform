@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { ApiError } from '../../api/client';
 import { createOrder } from '../../api/orders';
 import type { OrderFormOptions } from '../../api/meta';
 import { useStats } from '../../context/statsContext';
@@ -7,6 +8,7 @@ import { fieldAria } from '../../lib/fieldAria';
 import { countryName } from '../../lib/format';
 import {
   fieldId,
+  mapServerErrors,
   orderedErrorPaths,
   validateOrderDraft,
   type FieldErrors,
@@ -53,6 +55,7 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
   // A field to focus after the item list changed (new row, removed row).
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const submittingRef = useRef(false);
 
   const countries = [...options.countries].sort((a, b) => countryName(a).localeCompare(countryName(b)));
 
@@ -108,6 +111,9 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Checked and set synchronously, before any await: a double click fires two submit events in
+    // the same tick, before React has re-rendered the disabled button. The ref stops the second one.
+    if (submittingRef.current) return;
     setSubmitError(null);
 
     const result = validateOrderDraft(draft, limits, options.countries);
@@ -118,6 +124,7 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
       return;
     }
 
+    submittingRef.current = true;
     setErrors({});
     setSummaryErrors([]);
     setSubmitting(true);
@@ -126,8 +133,17 @@ export function CreateOrderForm({ options }: { options: OrderFormOptions }) {
       stats.reload(); // the dashboard numbers now include this order
       navigate(`/shipments/${order.id}`, { state: { createdOrderNumber: order.orderNumber } });
     } catch (error) {
-      setSubmitError(error instanceof Error ? error : new Error(String(error)));
+      submittingRef.current = false;
       setSubmitting(false);
+      if (error instanceof ApiError && error.code === 'VALIDATION_ERROR' && error.details.length > 0) {
+        // The server is the authority: show its messages next to the same fields as client errors.
+        const { fieldErrors, otherErrors } = mapServerErrors(error.details, draft.items.length);
+        setErrors(fieldErrors);
+        setSummaryErrors(otherErrors);
+        setSummaryFocusTick((tick) => tick + 1);
+      } else {
+        setSubmitError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   }
 
