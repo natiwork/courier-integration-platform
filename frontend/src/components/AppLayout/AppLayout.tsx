@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   Cable,
@@ -30,9 +30,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/shipments', label: 'Shipments', icon: Package },
   { to: '/couriers', label: 'Couriers', icon: Truck },
   { to: '/integrations', label: 'Integrations', icon: Cable },
-  // The component preview exists only in development builds.
-  ...(import.meta.env.DEV ? [{ to: '/styleguide', label: 'Component preview', icon: SwatchBook }] : []),
 ];
+
+// A developer tool, not part of the product: only in development builds, kept apart at the bottom.
+const DEV_ITEM: NavItem | null = import.meta.env.DEV ? { to: '/styleguide', label: 'Components', icon: SwatchBook } : null;
 
 export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -90,21 +91,21 @@ export function AppLayout() {
 
         <nav id="main-nav" aria-label="Main" className={styles.nav} data-open={menuOpen}>
           <ul role="list" className={styles.navList}>
-            {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  end={end}
-                  title={label}
-                  className={({ isActive }) => (isActive ? `${styles.navLink} ${styles.active}` : styles.navLink)}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Icon aria-hidden="true" size={20} className={styles.navIcon} />
-                  <span className={styles.navLabel}>{label}</span>
-                </NavLink>
+            {NAV_ITEMS.map((item) => (
+              <li key={item.to}>
+                <SidebarLink item={item} onNavigate={() => setMenuOpen(false)} />
               </li>
             ))}
           </ul>
+          {DEV_ITEM && (
+            <ul role="list" className={`${styles.navList} ${styles.devList}`}>
+              <li>
+                <SidebarLink item={DEV_ITEM} onNavigate={() => setMenuOpen(false)}>
+                  <span className={styles.devTag}>Dev</span>
+                </SidebarLink>
+              </li>
+            </ul>
+          )}
         </nav>
       </div>
 
@@ -116,6 +117,23 @@ export function AppLayout() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SidebarLink({ item, onNavigate, children }: { item: NavItem; onNavigate: () => void; children?: ReactNode }) {
+  const { to, label, icon: Icon, end } = item;
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      title={label}
+      className={({ isActive }) => (isActive ? `${styles.navLink} ${styles.active}` : styles.navLink)}
+      onClick={onNavigate}
+    >
+      <Icon aria-hidden="true" size={20} className={styles.navIcon} />
+      <span className={styles.navLabel}>{label}</span>
+      {children}
+    </NavLink>
   );
 }
 

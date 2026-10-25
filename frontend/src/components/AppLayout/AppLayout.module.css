@@ -137,6 +137,23 @@
   flex-shrink: 0;
 }
 
+/* Developer tools sit below a divider, apart from the product navigation */
+.devList {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.devTag {
+  margin-left: auto;
+  padding: 0 0.5em;
+  border: 1px dashed currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
 .active,
 .active:hover {
   background: var(--nav-active-bg);
@@ -241,6 +258,8 @@
   }
 
   .sidebar {
+    display: flex;
+    flex-direction: column;
     position: sticky;
     top: var(--space-4);
     align-self: start;
@@ -257,7 +276,8 @@
   }
 
   .brandName,
-  .navLabel {
+  .navLabel,
+  .devTag {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -272,8 +292,15 @@
 
   .nav,
   .nav[data-open='true'] {
-    display: block;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     padding: 0 var(--space-2) var(--space-4);
+  }
+
+  /* Pushed to the bottom of the sidebar */
+  .devList {
+    margin-top: auto;
   }
 
   .navLink {
@@ -328,7 +355,8 @@
   }
 
   .brandName,
-  .navLabel {
+  .navLabel,
+  .devTag {
     position: static;
     width: auto;
     height: auto;
