@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { getTracking, type TrackingReport } from '../../api/orders';
 import { useCourierName } from '../../context/couriersContext';
@@ -17,6 +17,7 @@ export function TrackingCard({ order }: { order: Order }) {
   const courierName = useCourierName();
   const [copyStatus, setCopyStatus] = useState('');
   const [check, setCheck] = useState<Check>({ kind: 'idle' });
+  const numberRef = useRef<HTMLSpanElement>(null);
 
   if (!order.trackingNumber || !order.courierProvider) {
     return <p className={styles.muted}>Not handed to a courier yet.</p>;
@@ -25,13 +26,27 @@ export function TrackingCard({ order }: { order: Order }) {
   const name = courierName(order.courierProvider);
   const demo = isDemoShipment(order);
 
+  // The Clipboard API exists only in secure contexts (https, localhost) and can be blocked, e.g. inside an
+  // iframe without the clipboard-write permission. Then the number is selected, so one shortcut copies it.
   async function copy() {
     try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API not available');
       await navigator.clipboard.writeText(trackingNumber);
       setCopyStatus('Copied');
     } catch {
-      setCopyStatus("Couldn't copy. Select the number and copy it manually.");
+      selectNumber();
+      setCopyStatus("Copying isn't allowed here. The number is selected: press Ctrl+C (⌘C on Mac) to copy it.");
     }
+  }
+
+  function selectNumber() {
+    const element = numberRef.current;
+    const selection = window.getSelection();
+    if (!element || !selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   async function ask() {
@@ -53,7 +68,9 @@ export function TrackingCard({ order }: { order: Order }) {
         <div>
           <dt>Tracking number</dt>
           <dd className={styles.numberRow}>
-            <span className={`${styles.number} tabular`}>{trackingNumber}</span>
+            <span ref={numberRef} className={`${styles.number} tabular`}>
+              {trackingNumber}
+            </span>
             <Button variant="secondary" size="sm" onClick={copy} aria-label={`Copy tracking number ${trackingNumber}`}>
               <Copy size={16} aria-hidden="true" /> Copy
             </Button>
