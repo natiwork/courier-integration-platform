@@ -13,7 +13,8 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "simulate:webhook": "tsx --env-file-if-exists=.env src/cli/simulateWebhook.ts"
   },
   "dependencies": {
     "express": "^5.3.0",
