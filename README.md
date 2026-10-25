@@ -24,7 +24,7 @@ With Docker (PostgreSQL, the API and the web app; demo data included):
 cp .env.example .env && docker compose up --build
 ```
 
-Then open <http://localhost:8080>. The backend applies the database migrations on start and fills an empty database with ~1,200 invented demo orders. Stop with `Ctrl+C`; the data stays in a Docker volume (`docker compose down -v` removes it).
+Then open <http://localhost:8080>. If port 5432 (another PostgreSQL) or 8080 is already in use, change `POSTGRES_PORT` or `APP_PORT` in `.env` first. The backend applies the database migrations on start and fills an empty database with ~1,200 invented demo orders. Stop with `Ctrl+C`; the data stays in a Docker volume (`docker compose down -v` removes it).
 
 For local development (Node 24 via `.nvmrc`, hot reload, no Docker needed):
 
