@@ -220,6 +220,16 @@
   text-decoration: underline;
 }
 
+/* Hidden visually below 1200px (the icon and number stay), but still read out */
+.attentionLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .main {
   max-width: var(--content-max);
 }
@@ -300,6 +310,14 @@
 }
 
 @media (min-width: 1200px) {
+  .attentionLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
   .shell {
     grid-template-columns: calc(var(--sidebar-width) + var(--space-4)) minmax(0, 1fr);
   }

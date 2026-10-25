@@ -166,10 +166,12 @@ function TopBar() {
       <div className={styles.actions}>
         {stats.data?.demoData && <DemoBadge />}
         {attentionCount !== undefined && (
-          <Link to={{ pathname: '/', hash: 'needs-attention' }} className={styles.attention} title="Orders that need attention">
+          <Link to={{ pathname: '/', hash: 'needs-attention' }} className={styles.attention}>
             <TriangleAlert aria-hidden="true" size={18} />
             <span className="tabular">{attentionCount}</span>
-            <span className="visually-hidden"> orders need attention</span>
+            {/* Visible on wide screens, screen-reader-only on small ones: the accessible name is
+                always "19 need attention", matching the visible text (WCAG 2.5.3). */}
+            <span className={styles.attentionLabel}> need attention</span>
           </Link>
         )}
         <ThemeToggle />
