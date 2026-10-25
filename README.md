@@ -15,6 +15,13 @@ A full-stack platform for managing e-commerce orders and courier service integra
 - Orders have line items, a total that the server computes (integer cents, currency EUR), a payment status (`PAID`, `UNPAID`, `REFUNDED`) and a destination country (ISO code, European countries).
 - `GET /api/stats/overview` returns the dashboard numbers, computed from the orders (see [definitions](#dashboard-numbers)).
 - `GET /api/meta/order-form` returns the supported countries, payment statuses and every validation limit, so the order form never hard-codes them.
+- Courier provider layer (see [docs/courier-providers.md](docs/courier-providers.md)):
+  - a common `CourierProvider` interface;
+  - results as a `success | transient | permanent` union instead of exceptions;
+  - per-provider status normalization;
+  - a registry.
+  - Two **fictional mock couriers**: `SwiftParcel` (fast, reliable, up to 100 kg) and `NordCargo` (slower, sometimes temporarily unavailable, up to 30 kg, 11 countries, validates addresses). Their delays and outages are simulated with a seeded generator. No real courier is called.
+- `GET /api/couriers` lists each courier with its capabilities and a health check. For the mocks the check is a **simulated ping**, labelled `"simulated": true`. Shipping orders through a courier is not built yet.
 - Input validation with Zod: trimmed strings, length limits, email format, parcel weight up to 100 kg, validated items, unknown fields rejected. Clients cannot send totals or system fields.
 - An order status state machine with a single transition table, including `RETURNED` and `CANCELLED`; see [docs/state-machine.md](docs/state-machine.md). Status changes are implemented in the service layer, but there is no HTTP endpoint for them yet.
 - A unified error format with a request id, also sent in the `X-Request-Id` header:
@@ -52,14 +59,20 @@ A full-stack platform for managing e-commerce orders and courier service integra
 - Every widget and page has its own loading, empty and error state with retry. These were checked with the backend stopped.
 - Responsive from 375 px to wide screens: the sidebar turns into an icon rail and then a menu, and tables turn into cards.
 - Keyboard-accessible: a skip link, visible focus, focus moves to the new page heading after navigation, and the mobile menu closes with Escape.
-- Placeholder pages for Couriers and Integrations say honestly that these features aren't built yet.
+- **Couriers**: a card for each provider from `GET /api/couriers`:
+  - health check result, with a note that it is simulated;
+  - max parcel weight compared with the platform limit;
+  - services and address validation;
+  - which of the platform's 31 countries it delivers to.
+  - "Check again" runs the health checks again. Order tables and details show the courier's name from the same request.
+- The Integrations page is still a placeholder and says so.
 
 ## Demo data
 
 In development the backend fills its in-memory store with **~1,200 invented demo orders**, about 4–5 a day and growing over time, spread over the last 9 months, so the dashboard has something to show.
 
 - Everything in them is made up: customers (with `@example.com` addresses), addresses, products, and tracking numbers prefixed with `DEMO-`.
-- The couriers `SwiftParcel` and `NordCargo` are fictional mock providers and aren't connected.
+- Shipped orders name one of the fictional mock couriers by its provider id (`swiftparcel`, `nordcargo`). Each order fits that courier's limits: NordCargo only gets parcels for its 11 countries. The orders were not created through the couriers: the tracking numbers are invented.
 - The UI shows a **Demo data** label while this data is loaded.
 
 How it works:
@@ -88,7 +101,7 @@ nvm use            # Node 24 from .nvmrc
 
 cd backend
 npm install
-npm run dev        # http://localhost:3000/health, seeds demo data
+npm run dev        # http://localhost:3000/health, seeds demo data, logs the mock courier seed
 
 cd ../frontend     # in a second terminal
 npm install
@@ -115,6 +128,6 @@ npm test
 cd ../frontend
 npm run typecheck
 npm run lint
-npm test           # Vitest: money parsing and form validation
+npm test           # Vitest: money parsing, form validation, courier coverage
 npm run build
 ```

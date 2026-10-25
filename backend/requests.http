@@ -171,3 +171,7 @@ GET {{baseUrl}}/api/stats/overview
 
 ### Order form options: countries, payment statuses, limits (200)
 GET {{baseUrl}}/api/meta/order-form
+
+### Courier providers: capabilities and a simulated health check (200)
+# Both couriers are fictional mocks; "simulated": true means no external service was contacted.
+GET {{baseUrl}}/api/couriers
