@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { countryName, formatDate, formatMoney } from '../../lib/format';
+import { countryName, formatDate, formatMoney, formatNumber } from '../../lib/format';
 import type { Order } from '../../types/order';
 import { PaymentBadge } from '../PaymentBadge/PaymentBadge';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
@@ -28,6 +28,12 @@ export function OrdersTable({ orders, caption, busy = false, showCreated = true 
             <th scope="col">Destination</th>
             <th scope="col">Status</th>
             <th scope="col">Payment</th>
+            <th scope="col" className={styles.wideOnly}>
+              Courier
+            </th>
+            <th scope="col" className={`${styles.numeric} ${styles.wideOnly}`}>
+              Items
+            </th>
             <th scope="col" className={styles.numeric}>
               Total
             </th>
@@ -55,6 +61,13 @@ export function OrdersTable({ orders, caption, busy = false, showCreated = true 
               </td>
               <td data-label="Payment">
                 <PaymentBadge status={order.paymentStatus} />
+              </td>
+              {/* Extra columns only when the table is very wide (see .wideOnly) */}
+              <td data-label="Courier" className={`${styles.wideOnly} ${styles.muted}`}>
+                {order.courierProvider ?? 'Not assigned'}
+              </td>
+              <td data-label="Items" className={`${styles.numeric} ${styles.wideOnly} tabular`}>
+                {formatNumber(order.items.reduce((sum, item) => sum + item.quantity, 0))}
               </td>
               <td data-label="Total" className={`${styles.numeric} ${styles.total} tabular`}>
                 {formatMoney(order.totalCents)}

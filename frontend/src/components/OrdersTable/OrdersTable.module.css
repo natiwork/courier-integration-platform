@@ -73,6 +73,18 @@
   text-decoration: none;
 }
 
+/* Courier and item count: hidden unless the table has room (≥ 1180px, i.e. Shipments on wide screens).
+   `.table .wideOnly` outranks `.table td` in the card layout below, so they stay hidden there too. */
+.table .wideOnly {
+  display: none;
+}
+
+@container (min-width: 1180px) {
+  .table .wideOnly {
+    display: table-cell;
+  }
+}
+
 /* Narrow containers: every row becomes a small card, cells are labelled with data-label */
 @container (max-width: 680px) {
   .table thead {

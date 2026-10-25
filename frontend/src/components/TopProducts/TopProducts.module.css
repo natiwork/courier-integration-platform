@@ -1,3 +1,7 @@
+.wrapper {
+  container-type: inline-size;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
@@ -60,4 +64,27 @@
 .revenue {
   color: var(--text-2);
   font-size: var(--text-sm);
+}
+
+/* Wide enough for all five in one row (the 1440 full-width card and the ≥1600 half-width card) */
+@container (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Tighter tiles when five share a medium-width card */
+@container (min-width: 640px) and (max-width: 860px) {
+  .tile {
+    padding: var(--space-3);
+  }
+
+  .revenue {
+    font-size: var(--text-xs);
+  }
+
+  /* Names wrap here: reserve two lines so the big numbers line up across tiles */
+  .name {
+    min-height: 2.6em;
+  }
 }

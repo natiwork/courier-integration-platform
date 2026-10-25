@@ -3,6 +3,7 @@
  *   < 768px    one column
  *   768–1199   KPI row: hero full width + 3 tiles; widgets in 2 columns
  *   >= 1200    KPI row: hero 1.5× + 3 tiles; widgets on a 12-column grid (8 / 4 split)
+ *   >= 1600    denser: chart | attention; activity | gauge | destinations; recent orders | products
  */
 
 .kpiRow,
@@ -124,5 +125,26 @@
   .products {
     grid-column: 1 / 13;
     grid-row: 4;
+  }
+}
+
+@media (min-width: 1600px) {
+  .attention {
+    grid-row: 1;
+  }
+
+  .destinations {
+    grid-column: 9 / 13;
+    grid-row: 2;
+  }
+
+  .recent {
+    grid-column: 1 / 7;
+    grid-row: 3;
+  }
+
+  .products {
+    grid-column: 7 / 13;
+    grid-row: 3;
   }
 }

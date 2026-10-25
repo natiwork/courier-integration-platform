@@ -67,3 +67,26 @@
     grid-column: 9 / 13;
   }
 }
+
+/* Wide screens: timeline, route and customer side by side; items below at full width */
+@media (min-width: 1600px) {
+  .timeline {
+    grid-column: 1 / 5;
+    grid-row: 1;
+  }
+
+  .route {
+    grid-column: 5 / 9;
+    grid-row: 1;
+  }
+
+  .customer {
+    grid-column: 9 / 13;
+    grid-row: 1;
+  }
+
+  .items {
+    grid-column: 1 / 13;
+    grid-row: 2;
+  }
+}

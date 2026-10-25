@@ -96,3 +96,12 @@
 .table tfoot td {
   vertical-align: baseline;
 }
+
+/* Very wide tables (Order details on large screens): number columns shrink to their content and
+   sit together on the right, instead of being spread across the whole width */
+@container (min-width: 1000px) {
+  .numeric {
+    width: 1%;
+    padding-left: var(--space-7) !important;
+  }
+}

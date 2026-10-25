@@ -156,7 +156,7 @@
   /* Layout */
   --sidebar-width: 15.5rem;
   --sidebar-rail: 4.75rem;
-  --content-max: 90rem;
+  --content-max: 110rem; /* 1760px: wide screens get a centred column, not a stretched one */
   --card-padding: var(--space-5);
   --grid-gap: var(--space-5);
 

@@ -110,11 +110,14 @@ export function AppLayout() {
       </div>
 
       <div className={styles.content}>
-        <TopBar />
-        {/* tabIndex={-1}: the skip link can move focus here */}
-        <main id="main" tabIndex={-1} className={styles.main}>
-          <Outlet />
-        </main>
+        {/* Top bar and page share one centred column, so on wide screens the spare space is split evenly */}
+        <div className={styles.inner}>
+          <TopBar />
+          {/* tabIndex={-1}: the skip link can move focus here */}
+          <main id="main" tabIndex={-1}>
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );

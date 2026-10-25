@@ -247,8 +247,9 @@
   white-space: nowrap;
 }
 
-.main {
+.inner {
   max-width: var(--content-max);
+  margin-inline: auto;
 }
 
 @media (min-width: 768px) {
