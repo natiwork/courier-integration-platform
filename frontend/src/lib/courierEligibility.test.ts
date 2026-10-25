@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Courier } from '../api/couriers';
-import { courierProblem, isDemoShipment } from './courierEligibility';
+import { courierProblem, isDemoShipment, suggestCourier } from './courierEligibility';
 
 const nordCargo: Courier = {
   id: 'nordcargo',
@@ -36,5 +36,36 @@ describe('isDemoShipment', () => {
     expect(isDemoShipment({ trackingNumber: 'DEMO-SP-123456' })).toBe(true);
     expect(isDemoShipment({ trackingNumber: 'SP0000000001' })).toBe(false);
     expect(isDemoShipment({ trackingNumber: null })).toBe(false);
+  });
+});
+
+describe('suggestCourier', () => {
+  const swiftParcel: Courier = { ...nordCargo, id: 'swiftparcel', name: 'SwiftParcel' };
+  const both = [swiftParcel, nordCargo];
+
+  it('starts with the first eligible courier on a first attempt', () => {
+    expect(suggestCourier(both)).toEqual({ courier: swiftParcel });
+  });
+
+  it('offers the same courier again after a temporary failure', () => {
+    expect(suggestCourier(both, { type: 'PROVIDER_UNAVAILABLE', providerId: 'nordcargo' })).toEqual({ courier: nordCargo });
+  });
+
+  it('suggests another courier, with a note, after a rejection', () => {
+    expect(suggestCourier(both, { type: 'SHIPMENT_REJECTED', providerId: 'nordcargo' })).toEqual({
+      courier: swiftParcel,
+      note: 'NordCargo rejected this order last time, so SwiftParcel is suggested. You can still choose NordCargo.',
+    });
+  });
+
+  it('keeps the rejecting courier, and says so, when no other courier can take the order', () => {
+    expect(suggestCourier([nordCargo], { type: 'SHIPMENT_REJECTED', providerId: 'nordcargo' })).toEqual({
+      courier: nordCargo,
+      note: 'NordCargo rejected this order last time, and no other courier can take it.',
+    });
+  });
+
+  it('falls back to the first eligible courier if the previous one can no longer take the order', () => {
+    expect(suggestCourier([swiftParcel], { type: 'PROVIDER_UNAVAILABLE', providerId: 'nordcargo' })).toEqual({ courier: swiftParcel });
   });
 });

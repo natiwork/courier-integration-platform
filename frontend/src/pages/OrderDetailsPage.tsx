@@ -158,7 +158,7 @@ function OrderDetails({ order, events, onShipResult, onPaymentRecorded }: OrderD
   const history = events.data?.every((event) => event.orderId === order.id) ? events.data : undefined;
   // PENDING, or FAILED before any courier took it (a retry). A tracking number means it already shipped.
   const shippable = !order.trackingNumber && (order.status === 'PENDING' || order.status === 'FAILED');
-  const lastFailure = order.status === 'FAILED' ? history?.findLast((event) => event.toStatus === 'FAILED')?.message : undefined;
+  const lastFailure = order.status === 'FAILED' ? history?.findLast((event) => event.toStatus === 'FAILED') : undefined;
   return (
     <div className={styles.grid}>
       {shippable ? (

@@ -2,9 +2,9 @@ import { useId, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { markOrderPaid, shipOrder } from '../../api/orders';
 import { useCouriers } from '../../context/couriersContext';
-import { courierProblem } from '../../lib/courierEligibility';
+import { courierProblem, suggestCourier } from '../../lib/courierEligibility';
 import { countryName, formatMoney, formatNumber } from '../../lib/format';
-import type { Order } from '../../types/order';
+import type { Order, OrderEvent } from '../../types/order';
 import { Button } from '../Button/Button';
 import { ConfirmationDialog } from '../ConfirmationDialog/ConfirmationDialog';
 import { EmptyState } from '../EmptyState/EmptyState';
@@ -16,8 +16,8 @@ export type ShipResult = { ok: true; order: Order; courierName: string } | { ok:
 
 interface ShipPanelProps {
   order: Order;
-  // Why the previous attempt failed, from the order history, when this is a retry.
-  lastFailure?: string;
+  // The event of the previous failed attempt, when this is a retry: its message and which courier failed how.
+  lastFailure?: OrderEvent;
   onResult: (result: ShipResult) => void;
   // The payment was recorded: the page reloads the order (it is now shippable) and the dashboard numbers.
   onPaymentRecorded: () => void;
@@ -55,8 +55,9 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
 
   const options = couriers.data.map((courier) => ({ courier, problem: courierProblem(courier, order) }));
   const eligible = options.filter((option) => !option.problem).map((option) => option.courier);
-  // The user's choice if it is still possible, otherwise the first courier that can take the parcel.
-  const courier = eligible.find((c) => c.id === chosenCourierId) ?? eligible[0];
+  // The user's choice if it is still possible, otherwise a suggestion based on how the last attempt ended.
+  const suggestion = suggestCourier(eligible, lastFailure);
+  const courier = eligible.find((c) => c.id === chosenCourierId) ?? suggestion.courier;
   const service = courier?.capabilities.services.find((s) => s.id === chosenServiceId) ?? courier?.capabilities.services[0];
   const destination = `${order.destinationCity}, ${countryName(order.destinationCountry)}`;
 
@@ -88,6 +89,12 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
     submittingRef.current = false;
     setBusy(false);
     setConfirming(false);
+    if (!result.ok) {
+      // Start the retry from the suggestion (same courier after an outage, another one after a rejection),
+      // exactly as a fresh page load would.
+      setChosenCourierId(null);
+      setChosenServiceId(null);
+    }
     onResult(result);
   }
 
@@ -132,9 +139,10 @@ export function ShipPanel({ order, lastFailure, onResult, onPaymentRecorded }: S
 
       {lastFailure && (
         <p className={styles.lastFailure}>
-          <strong>Last attempt failed.</strong> {lastFailure}
+          <strong>Last attempt failed.</strong> {lastFailure.message}
         </p>
       )}
+      {suggestion.note && !chosenCourierId && <p className={styles.suggestion}>{suggestion.note}</p>}
 
       <fieldset className={styles.group}>
         <legend className={styles.legend}>Courier</legend>

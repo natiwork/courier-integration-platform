@@ -40,6 +40,11 @@
   overflow-wrap: anywhere;
 }
 
+.suggestion {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
 .group {
   display: grid;
   gap: var(--space-3);
