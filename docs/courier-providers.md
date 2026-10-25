@@ -37,7 +37,7 @@ Error codes the mocks return:
 | `SHIPMENT_NOT_FOUND` | permanent | The courier never issued that tracking number |
 | `UNMAPPED_STATUS` | permanent | The courier reported a status we have no translation for |
 
-Over HTTP, shipping turns a `permanent` result into `422 PROVIDER_REJECTED` and a `transient` one into `502 PROVIDER_UNAVAILABLE`; see [Shipping in the README](../README.md#shipping). A provider that throws instead of returning a result is treated as unavailable (`PROVIDER_ERROR`), so an order never stays stuck in `PROCESSING`. `checkCapabilities` (`providers/capabilities.ts`) is shared: each mock checks its own limits, and `ShipmentService` checks them before calling the courier at all.
+Over HTTP, shipping turns a `permanent` result into `422 PROVIDER_REJECTED` and a `transient` one into `502 PROVIDER_UNAVAILABLE`; see [Shipping in the API reference](api.md#shipping). A provider that throws instead of returning a result is treated as unavailable (`PROVIDER_ERROR`), so an order never stays stuck in `PROCESSING`. `checkCapabilities` (`providers/capabilities.ts`) is shared: each mock checks its own limits, and `ShipmentService` checks them before calling the courier at all.
 
 ## The two mock couriers
 
