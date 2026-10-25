@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LOG_LEVELS, type LogLevel } from '../lib/logger.js';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -12,6 +13,8 @@ const EnvSchema = z.object({
     .min(100, 'PROVIDER_TIMEOUT_MS must be at least 100')
     .max(60_000, 'PROVIDER_TIMEOUT_MS must be at most 60000')
     .default(2000),
+  // debug | info | warn | error | silent. Default: info (silent under NODE_ENV=test).
+  LOG_LEVEL: z.enum(LOG_LEVELS, `LOG_LEVEL must be one of: ${LOG_LEVELS.join(', ')}`).optional(),
   // Fixes the "random" behaviour of the mock couriers (delays, NordCargo outages). Unset = new every start.
   MOCK_PROVIDER_SEED: z
     .string()
@@ -26,6 +29,7 @@ export interface AppConfig {
   seedDemoData: boolean;
   mockProviderSeed: number | undefined;
   providerTimeoutMs: number;
+  logLevel: LogLevel;
 }
 
 // Reads and checks environment variables once at startup. A bad value stops the server with a clear message.
@@ -35,12 +39,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const problems = result.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
     throw new Error(`Invalid environment variables:\n${problems}`);
   }
-  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED, PROVIDER_TIMEOUT_MS } = result.data;
+  const { NODE_ENV, PORT, SEED_DEMO_DATA, MOCK_PROVIDER_SEED, PROVIDER_TIMEOUT_MS, LOG_LEVEL } = result.data;
   return {
     nodeEnv: NODE_ENV,
     port: PORT,
     seedDemoData: SEED_DEMO_DATA === undefined ? NODE_ENV !== 'production' : SEED_DEMO_DATA === 'true',
     mockProviderSeed: MOCK_PROVIDER_SEED,
     providerTimeoutMs: PROVIDER_TIMEOUT_MS,
+    logLevel: LOG_LEVEL ?? (NODE_ENV === 'test' ? 'silent' : 'info'),
   };
 }

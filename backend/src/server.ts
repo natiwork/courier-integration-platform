@@ -1,5 +1,6 @@
 import { createApp } from './app.js';
 import { loadConfig, type AppConfig } from './config/env.js';
+import { configureLogger, logger } from './lib/logger.js';
 import { createProviderRegistry } from './providers/index.js';
 import { InMemoryOrderEventRepository } from './repositories/inMemoryOrderEventRepository.js';
 import { InMemoryOrderRepository } from './repositories/inMemoryOrderRepository.js';
@@ -12,6 +13,7 @@ try {
   console.error((error as Error).message);
   process.exit(1);
 }
+configureLogger({ level: config.logLevel });
 
 const orderRepository = new InMemoryOrderRepository();
 const orderEventRepository = new InMemoryOrderEventRepository();
@@ -28,15 +30,13 @@ if (config.seedDemoData) {
   for (const event of demoEvents) {
     await orderEventRepository.append(event);
   }
-  console.log(
-    `Seeded ${demoOrders.length} demo orders with ${demoEvents.length} history events (set SEED_DEMO_DATA=false to start empty)`,
-  );
+  logger.info('demo data seeded', { orders: demoOrders.length, events: demoEvents.length, hint: 'set SEED_DEMO_DATA=false to start empty' });
 }
 
 // The mock couriers wait like real network calls here. Log the seed so a run can be repeated.
 const providerSeed = config.mockProviderSeed ?? Date.now() % 2 ** 31;
 const providerRegistry = createProviderRegistry({ seed: providerSeed, simulateLatency: true });
-console.log(`Mock courier providers use seed ${providerSeed} (set MOCK_PROVIDER_SEED to repeat a run)`);
+logger.info('mock courier providers ready', { seed: providerSeed, hint: 'set MOCK_PROVIDER_SEED to repeat a run' });
 
 createApp({
   orderRepository,
@@ -45,5 +45,5 @@ createApp({
   providerTimeoutMs: config.providerTimeoutMs,
   demoData: config.seedDemoData,
 }).listen(config.port, () => {
-  console.log(`Server listening on http://localhost:${config.port}`);
+  logger.info('server listening', { url: `http://localhost:${config.port}`, providerTimeoutMs: config.providerTimeoutMs });
 });

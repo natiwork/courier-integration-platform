@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Express } from 'express';
 import { createApp } from '../../src/app.js';
+import { configureLogger } from '../../src/lib/logger.js';
 import type { OrderRepository } from '../../src/repositories/orderRepository.js';
 import { validOrderBody as validOrder, validOrderTotalCents } from '../fixtures/orders.js';
 
@@ -213,15 +214,16 @@ describe('Orders API', () => {
       findById: async () => { throw new Error(secret); },
       update: async () => { throw new Error(secret); },
     };
-    let consoleError: ReturnType<typeof vi.spyOn>;
+    let logLines: Record<string, unknown>[];
 
     beforeEach(() => {
-      // The real error is logged on purpose; silence it in test output but keep it inspectable.
-      consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      // The real error is logged on purpose; capture the JSON lines instead of printing them.
+      logLines = [];
+      configureLogger({ level: 'error', sink: (line) => logLines.push(JSON.parse(line)) });
     });
 
     afterEach(() => {
-      consoleError.mockRestore();
+      configureLogger({ level: 'silent' });
     });
 
     it.each([
@@ -241,9 +243,14 @@ describe('Orders API', () => {
       expect(res.text).not.toContain(secret);
       expect(res.text).not.toContain('stack');
       // ...but the real error does reach the log, tagged with the same requestId.
-      expect(consoleError).toHaveBeenCalledWith(
-        expect.stringContaining(res.headers['x-request-id'] as string),
-        expect.objectContaining({ message: secret }),
+      expect(logLines).toContainEqual(
+        expect.objectContaining({
+          level: 'error',
+          msg: 'request failed',
+          requestId: res.headers['x-request-id'],
+          status: 500,
+          error: expect.objectContaining({ message: secret, stack: expect.any(String) }),
+        }),
       );
     });
   });

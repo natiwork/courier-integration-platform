@@ -9,7 +9,13 @@ describe('loadConfig', () => {
       seedDemoData: true,
       mockProviderSeed: undefined,
       providerTimeoutMs: 2000,
+      logLevel: 'info',
     });
+  });
+
+  it('keeps tests quiet by default and lets LOG_LEVEL override it', () => {
+    expect(loadConfig({ NODE_ENV: 'test' }).logLevel).toBe('silent');
+    expect(loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'debug' }).logLevel).toBe('debug');
   });
 
   it('reads PROVIDER_TIMEOUT_MS as milliseconds', () => {
@@ -39,6 +45,7 @@ describe('loadConfig', () => {
     [{ NODE_ENV: 'staging' }, 'NODE_ENV'],
     [{ MOCK_PROVIDER_SEED: '' }, 'MOCK_PROVIDER_SEED'],
     [{ PROVIDER_TIMEOUT_MS: '50' }, 'PROVIDER_TIMEOUT_MS'],
+    [{ LOG_LEVEL: 'verbose' }, 'LOG_LEVEL'],
     [{ PROVIDER_TIMEOUT_MS: 'soon' }, 'PROVIDER_TIMEOUT_MS'],
     [{ MOCK_PROVIDER_SEED: '1.5' }, 'MOCK_PROVIDER_SEED'],
     [{ MOCK_PROVIDER_SEED: '-3' }, 'MOCK_PROVIDER_SEED'],

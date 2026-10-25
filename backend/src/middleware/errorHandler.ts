@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from 'express';
 import { AppError } from '../errors/appError.js';
+import { errorFields, logger } from '../lib/logger.js';
 
 // Errors thrown by express.json() (body-parser) carry a `type` and an HTTP `status`.
 interface BodyParserError {
@@ -42,9 +43,16 @@ export const errorHandler: ErrorRequestHandler = (err: unknown, req, res, next) 
 
   const appError = toAppError(err);
 
-  // Stack traces go to the log only, never into the response.
-  if (appError.httpStatus >= 500) {
-    console.error(`[${req.requestId}] ${req.method} ${req.originalUrl} failed:`, err);
+  // Stack traces go to the log only, never into the response. Courier failures (502/504) are expected
+  // outcomes, already logged per attempt; only our own failures need the stack.
+  if (appError.httpStatus >= 500 && !(err instanceof AppError)) {
+    logger.error('request failed', {
+      requestId: req.requestId,
+      method: req.method,
+      path: req.originalUrl.split('?')[0],
+      status: appError.httpStatus,
+      ...errorFields(err),
+    });
   }
 
   res.status(appError.httpStatus).json({

@@ -17,6 +17,7 @@ import { checkCapabilities } from '../providers/capabilities.js';
 import type { CourierProvider, ProviderResult, ShipmentInput } from '../providers/courierProvider.js';
 import type { ProviderRegistry } from '../providers/providerRegistry.js';
 import { DEFAULT_RETRY_POLICY, retryWithBackoff, type RetryPolicy } from '../lib/retry.js';
+import { errorFields, logger } from '../lib/logger.js';
 import { withTimeout } from '../lib/withTimeout.js';
 import type { ShipOrderInput } from '../validation/shipmentSchemas.js';
 import type { OrderService } from './orderService.js';
@@ -104,7 +105,10 @@ export class ShipmentService {
 
     const provider = this.registry.get(order.courierProvider);
     const trackingNumber = order.trackingNumber;
-    const result = await this.call(provider, 'getShipmentStatus', (signal) => provider.getShipmentStatus(trackingNumber, { signal }));
+    const result = await this.call(provider, 'getShipmentStatus', (signal) => provider.getShipmentStatus(trackingNumber, { signal }), {
+      orderId,
+      attempt: 1,
+    });
     switch (result.kind) {
       case 'success':
         return {
@@ -161,7 +165,7 @@ export class ShipmentService {
     // same order gets 409 SHIPMENT_IN_PROGRESS until all attempts and waits are over, so it can't start a parallel
     // shipment in between.
     const { result, attempts } = await retryWithBackoff(
-      () => this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal })),
+      (attempt) => this.call(provider, 'createShipment', (signal) => provider.createShipment(input, { signal }), { orderId, attempt }),
       { policy: this.retry, shouldRetry: isRetryable, random: this.random },
     );
     switch (result.kind) {
@@ -222,21 +226,39 @@ export class ShipmentService {
   // One courier call with a deadline. A provider should answer with a ProviderResult, but a real integration
   // can still throw (a bug, a bad response): that counts as "unavailable", so the order ends up FAILED
   // instead of stuck in PROCESSING.
+  // Every attempt is logged (the request id is added by the logger), so a slow or failing courier
+  // can be traced call by call. Only ids and codes: the shipment input contains personal data.
   private async call<T>(
     provider: CourierProvider,
     operation: string,
     run: (signal: AbortSignal) => Promise<ProviderResult<T>>,
+    context: { orderId: string; attempt: number },
   ): Promise<CallOutcome<T>> {
+    const started = performance.now();
+    let outcome: CallOutcome<T>;
+    let failure: unknown;
     try {
-      const outcome = await withTimeout(run, this.timeoutMs);
-      if (outcome.timedOut) {
-        return { kind: 'timeout', code: 'PROVIDER_TIMEOUT', message: `No answer within ${this.timeoutMs} ms` };
-      }
-      return outcome.value;
+      const timed = await withTimeout(run, this.timeoutMs);
+      outcome = timed.timedOut
+        ? { kind: 'timeout', code: 'PROVIDER_TIMEOUT', message: `No answer within ${this.timeoutMs} ms` }
+        : timed.value;
     } catch (error) {
-      console.error(`[${provider.id}] ${operation} threw:`, error);
-      return { kind: 'transient', code: 'PROVIDER_ERROR', message: 'The courier returned an unexpected error' };
+      failure = error;
+      outcome = { kind: 'transient', code: 'PROVIDER_ERROR', message: 'The courier returned an unexpected error' };
     }
+    const fields = {
+      provider: provider.id,
+      operation,
+      orderId: context.orderId,
+      attempt: context.attempt,
+      durationMs: Math.round(performance.now() - started),
+      outcome: outcome.kind,
+      ...(outcome.kind !== 'success' && { code: outcome.code }),
+    };
+    if (failure) logger.error('courier call threw', { ...fields, ...errorFields(failure) });
+    else if (outcome.kind === 'success') logger.info('courier call', fields);
+    else logger.warn('courier call', fields);
+    return outcome;
   }
 }
 
