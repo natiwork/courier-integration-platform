@@ -21,6 +21,14 @@ export function TrackingCard({ order, onOrderChanged }: { order: Order; onOrderC
   const [check, setCheck] = useState<Check>({ kind: 'idle' });
   const numberRef = useRef<HTMLSpanElement>(null);
 
+  if (order.shippingStartedAt && order.shippingProviderId) {
+    return (
+      <p className={styles.muted}>
+        Shipping with {courierName(order.shippingProviderId)} is in progress (started {formatDateTime(order.shippingStartedAt)}).
+        Reload the page in a moment to see the courier's answer.
+      </p>
+    );
+  }
   if (!order.trackingNumber || !order.courierProvider) {
     return <p className={styles.muted}>Not handed to a courier yet.</p>;
   }

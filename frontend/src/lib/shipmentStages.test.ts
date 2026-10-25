@@ -21,6 +21,8 @@ function order(status: OrderStatus, courierProvider: string | null = null): Orde
     courierProvider,
     status,
     trackingNumber: null,
+    shippingStartedAt: null,
+    shippingProviderId: null,
     createdAt: '2026-10-24T08:00:00.000Z',
     updatedAt: '2026-10-24T10:00:00.000Z',
   };

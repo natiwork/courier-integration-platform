@@ -41,6 +41,8 @@ function sampleOrder(status: OrderStatus): Order {
     courierProvider: handedOver ? 'Sample courier' : null,
     status,
     trackingNumber: null,
+    shippingStartedAt: null,
+    shippingProviderId: null,
     createdAt: '2026-01-05T09:30:00.000Z',
     updatedAt: '2026-01-07T16:45:00.000Z',
   };

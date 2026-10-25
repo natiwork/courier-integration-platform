@@ -39,6 +39,9 @@ export interface Order {
   courierProvider: string | null; // provider id ("nordcargo"); the name comes from /api/couriers
   status: OrderStatus;
   trackingNumber: string | null;
+  // Set while a ship request is waiting for the courier (the shipping lock); cleared with the outcome.
+  shippingStartedAt: string | null;
+  shippingProviderId: string | null;
   createdAt: string;
   updatedAt: string;
 }

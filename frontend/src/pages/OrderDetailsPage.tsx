@@ -157,8 +157,12 @@ interface OrderDetailsProps {
 function OrderDetails({ order, events, onShipResult, onOrderChanged }: OrderDetailsProps) {
   // Events of another order may still be on screen for a moment after navigating: only use matching ones.
   const history = events.data?.every((event) => event.orderId === order.id) ? events.data : undefined;
-  // PENDING, or FAILED before any courier took it (a retry). A tracking number means it already shipped.
-  const shippable = !order.trackingNumber && (order.status === 'PENDING' || order.status === 'FAILED');
+  // PENDING, PROCESSING (being prepared) or FAILED (a retry), while no ship request is waiting for a courier.
+  // A tracking number means it already shipped. The backend checks the same rules.
+  const shippable =
+    !order.trackingNumber &&
+    !order.shippingStartedAt &&
+    (order.status === 'PENDING' || order.status === 'PROCESSING' || order.status === 'FAILED');
   const lastFailure = order.status === 'FAILED' ? history?.findLast((event) => event.toStatus === 'FAILED') : undefined;
   return (
     <div className={styles.grid}>
