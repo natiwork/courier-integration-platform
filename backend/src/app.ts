@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { requestId } from './middleware/requestId.js';
+import { InMemoryIdempotencyStore, type IdempotencyStore } from './idempotency/idempotencyStore.js';
 import type { RetryPolicy } from './lib/retry.js';
 import { createProviderRegistry } from './providers/index.js';
 import type { ProviderRegistry } from './providers/providerRegistry.js';
@@ -28,6 +29,8 @@ export interface AppOptions {
   orderRepository?: OrderRepository;
   // Defaults to a fresh in-memory event log. Pass the one the orders were seeded with.
   orderEventRepository?: OrderEventRepository;
+  // Defaults to a fresh in-memory store of Idempotency-Key responses (24 h).
+  idempotencyStore?: IdempotencyStore;
   // Defaults to the mock providers with a fixed seed and no simulated latency.
   providerRegistry?: ProviderRegistry;
   // Deadline for each courier call. Defaults to DEFAULT_PROVIDER_TIMEOUT_MS (2 s).
@@ -52,6 +55,7 @@ export function createApp(options: AppOptions = {}): Express {
     options.providerRegistry ??
     createProviderRegistry({ seed: TEST_PROVIDER_SEED, simulateLatency: false, now: options.now });
   const courierService = new CourierService(providerRegistry);
+  const idempotencyStore = options.idempotencyStore ?? new InMemoryIdempotencyStore(options.now);
   const shipmentService = new ShipmentService(orderService, providerRegistry, {
     now: options.now,
     timeoutMs: options.providerTimeoutMs,
@@ -75,7 +79,7 @@ export function createApp(options: AppOptions = {}): Express {
     });
   });
 
-  app.use('/api/orders', createOrderRouter(orderService, shipmentService, providerRegistry));
+  app.use('/api/orders', createOrderRouter(orderService, shipmentService, providerRegistry, idempotencyStore));
   app.use('/api/stats', createStatsRouter(statsService));
   app.use('/api/meta', createMetaRouter());
   app.use('/api/couriers', createCourierRouter(courierService));

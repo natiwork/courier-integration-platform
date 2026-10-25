@@ -225,3 +225,27 @@ GET {{baseUrl}}/api/orders/{{createOrder.response.body.data.id}}/tracking
 
 ### Recent courier calls and a summary per courier (200). Empty until an order is shipped in this run.
 GET {{baseUrl}}/api/integrations/activity
+
+### Idempotency-Key: send this twice. One order is created; the second answer has "Idempotent-Replayed: true".
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: demo-key-0001
+
+{
+  "customerName": "Sofía López",
+  "customerEmail": "sofia.lopez@example.com",
+  "deliveryAddress": "Calle de Atocha 27",
+  "destinationCity": "Madrid",
+  "postalCode": "28012",
+  "destinationCountry": "ES",
+  "parcelWeightKg": 0.8,
+  "paymentStatus": "PAID",
+  "items": [{ "sku": "NB-A5-06", "name": "A5 dot-grid notebook", "quantity": 2, "unitPriceCents": 1290 }]
+}
+
+### Same key, different body (422 IDEMPOTENCY_KEY_REUSED)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: demo-key-0001
+
+{ "customerName": "Someone else" }
